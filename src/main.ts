@@ -39,6 +39,7 @@ import { initHud, showHud, layOutHudAhead, slotsAhead, buildHotbar, banner, show
 import { cancelProfile, profiling } from './ui/profileTab';
 import { initMenus, layOutMenuAhead, slideMenuAhead, rehearseChest, showMenu, showSummary, hideSummary, showPause, toggleMenuStowed, menuStowed, lobbyPractice, selectedWave, startBests, trainingSelected, selectTraining, lobbyViewShift, renderMenu, markNew, clearOverlays, openPanels, panelsOpen, showHelp, helpOpen, hideHelp, layOutHelpAhead, changeHero as askForHeroes, type Panels } from './ui/menus';
 import { initVillageCard, showVillageCard, villageCardOf } from './ui/villageCard';
+import { initPvp, renderPvp } from './ui/pvpMenu';
 import { standGhost, updateGhost, ghostsWarmed, ghostBiome } from './game/ghost';
 import { initVillage, prepareLamps, updateVillage, closedFrom, inYard, villageObject, goUse, goTo, objectNear, heroLookedAt, villageReport } from './game/village';
 import { seenShareAt } from './core/sight';
@@ -273,6 +274,8 @@ async function boot() {
     renderMenu();
     initVillage({ use: useObject, leave: leaveObject, active: villageActive, shows: objectShows });
     initVillageCard((o) => closedFrom(o), (id) => { G.arena.setBiome(id); sendLobbyChoice(); });
+    // (a player alone at the rack is walked to the campfire, where a party is gathered)
+    initPvp(() => { const fire = villageObject('campfire'); if (fire) goUse(fire); });
     // (how to play laid out under the loading screen: ui/menus.ts)
     layOutHelpAhead(true);
     initTrainingTracker();
@@ -296,7 +299,7 @@ async function boot() {
   // an item picked up off the lobby floor goes back in the stash, marked new
   initGround((it) => { if (!addToStash(G.profile, it)) return false; markNew([it]); renderMenu(); return true; });
   initSync();
-  initSession({ startRun: whenWarm(['fight'], guestStart, READYING.fight), hostGone, changed: () => { renderCoop(); sendLobbyChoice(); } });
+  initSession({ startRun: whenWarm(['fight'], guestStart, READYING.fight), hostGone, changed: () => { renderCoop(); renderPvp(); sendLobbyChoice(); } });
   initCoop();
   initBugReport(reportClosed);
   for (const link of document.querySelectorAll<HTMLElement>('.report-link')) link.onclick = () => { sfx.click(); openReport(); };
@@ -531,7 +534,7 @@ function useObject(o: VillageObject): void {
     case 'stash': showVillageCard(null); openPanels('chest'); completeStep('stash'); return;
     case 'heroes': showVillageCard(null); openPanels(null); askForHeroes(); return;
     case 'coop': openCoop(true); return;
-    case 'chronicle': openPanels(null); showVillageCard(o); return;
+    case 'chronicle': case 'pvp': openPanels(null); showVillageCard(o); return;
     case 'help': showHelp(true); completeStep('notice'); return;
   }
 }
@@ -547,7 +550,7 @@ function leaveObject(o: VillageObject): void {
 /** Whether what `o` opened is still up. */
 function objectShows(o: VillageObject): boolean {
   switch (o.use) {
-    case 'portal': case 'chronicle': case 'training': return villageCardOf() === o;
+    case 'portal': case 'chronicle': case 'training': case 'pvp': return villageCardOf() === o;
     case 'stash': return panelsOpen() === 'chest';
     case 'coop': return coopOpen();
     case 'help': return helpOpen();
