@@ -6,6 +6,7 @@
 // the scene compiles or draws more. Through the eyes and over the shoulder the camera stands where he does, and walls hide
 // what they hide.
 import * as THREE from 'three';
+import { onWholeView, wholeView } from './wholeView';
 
 /** A wall as a line on the floor, from (x0, z0) to (x1, z1). */
 export interface SightWall { x0: number; z0: number; x1: number; z1: number }
@@ -376,9 +377,10 @@ function seeThroughDoor(x: number, z: number, rate: number, moved: boolean): voi
 /** The hero at (x, z), the fog `wanted` or not: eased in and out over the frames, `rate` a share a frame, `dt` long. */
 export function seeFrom(x: number, z: number, wanted: boolean, rate: number, dt: number): void {
   const target = wanted && !heldOff ? 1 : 0;
-  const on = SIGHT.uSightOn;
-  on.value += Math.max(-rate, Math.min(rate, target - on.value));
-  if (on.value <= 0) return;
+  fogAsked += Math.max(-rate, Math.min(rate, target - fogAsked));
+  // (none of it drawn in a whole view, the game's own eased on underneath: `core/wholeView.ts`)
+  SIGHT.uSightOn.value = wholeView() ? 0 : fogAsked;
+  if (fogAsked <= 0) return;
   const moved = !castFrom || Math.hypot(castFrom.x - x, castFrom.z - z) > MOVED;
   if (moved) {
     castRays(x, z, castFrom?.x ?? x, castFrom?.z ?? z);
@@ -391,6 +393,12 @@ export function seeFrom(x: number, z: number, wanted: boolean, rate: number, dt:
   const shut = SIGHT.uSightShut;
   shut.value += Math.max(-rate, Math.min(rate, (building && !inside ? 1 : 0) - shut.value));
 }
+
+/** how far the game has the fog on (0 to 1): `uSightOn`, but in a whole view, which draws none */
+let fogAsked = 0;
+onWholeView((whole) => {
+  SIGHT.uSightOn.value = whole ? 0 : fogAsked;
+});
 
 /** Whether the fog lies over (x, z), from where the rays were last cast (a thing in it needn't move). */
 export function inTheFog(x: number, z: number): boolean {

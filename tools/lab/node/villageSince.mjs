@@ -18,19 +18,20 @@ export const AREAS = [
   {
     name: 'the fog',
     files: /^src\/core\/sight\.ts$/,
-    checks: /fog|sight|seen|leaves|fires|roofShows|doorCone|doorLine|hallEntry|hallWallsOne/i,
+    checks: /fog|sight|seen|leaves|fires|roofShows|doorCone|doorLine|hallEntry|hallWallsOne|freeCam/i,
   },
   {
     name: 'what thins',
     files: /^src\/core\/(seeThrough|heroHidden|ghostLayers)\.ts$/,
-    checks: /hall|wall|column|roof|ghost|behind|houses|dots|seen|fog|door|capital|props|portal/i,
+    checks: /hall|wall|column|roof|ghost|behind|houses|dots|seen|fog|door|capital|props|portal|freeCam/i,
   },
   {
     name: 'the lamps',
     files: /^src\/(core\/(lamps|lightBounds)|world\/lampAtlas)\.ts$/,
     checks: /lamp|light|shadow|lit|blind|crystal|compile|hours/i,
   },
-  { name: 'the grass', files: /^src\/world\/meadow\.ts$/, checks: /grass|meadow/i },
+  { name: 'the grass', files: /^src\/world\/meadow\.ts$/, checks: /grass|meadow|freeCam/i },
+  { name: 'the free camera', files: /^src\/(core\/wholeView|dev\/freeCam)\.ts$/, checks: /freeCam/i },
   { name: 'the fires', files: /^src\/world\/fire(Nodes)?\.ts$/, checks: /fire/i },
   { name: 'the training', files: /^src\/(game|data|ui)\/training\.ts$/, checks: /training/i },
   { name: 'the hall\'s heroes', files: /^src\/(game\/hall|world\/heroHall)\.ts$/, checks: /hero|hall|dais|built/i },

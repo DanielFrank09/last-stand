@@ -7,6 +7,7 @@ import { RUNNING } from './rendererChoice';
 import { VILLAGE } from './beta';
 import * as plain from './seeThroughPlain';
 import { DOOR_ROW, DOOR_SOFT, HIS_ROW, SIGHT } from './sight';
+import { onWholeView, wholeView } from './wholeView';
 
 /** how far over his floor a prop starts to dissolve (m): the terrace's and the hall's floor came apart round his feet
  *  when this was held at the village's ground, 1.6 m under them */
@@ -230,6 +231,8 @@ const HALL_SIGHT = { value: 0 };
  *  the hall, its front wall and its beam alone (from play, "this should be semi transparent, right? visibility cone
  *  and all"); with him on its portico, the portico's columns alone. */
 export function hallSightCone(share: number, inside: boolean, onPortico: boolean): void {
+  coneAsked = [share, inside, onPortico];
+  if (wholeView()) share = 0;
   // (the columns alone, each as one by its middle: a wall thins whole or not at all, the game's `hidesSeenFloor`. By
   // the floor each of its pixels hid, a cone of his sight stood cut across the wall, a slanted pane with the columns
   // through it, from play, "didnt we agree to thin whole wall? but mark unseen regions with fog of war ?")
@@ -1057,6 +1060,8 @@ export type HallWallKind = (typeof HALL_WALL_KINDS)[number];
 
 /** How much of what's before the hero `kind` thins by a share of its own, a whole wall's rather than a hole round him. */
 export function fadeWhole(kind: FadesWhole, share: number): void {
+  wholeAsked.set(kind, share);
+  if (wholeView()) share = 0;
   kinds[kind].whole.value = share;
   const letGo = share >= DEPTH_LET_GO || ((kind === 'hallFront' || kind === 'hallRoof') && HALL_DOOR_ON.value > 0)
     || ((kinds[kind] as Kind).sight === true && ((kinds[kind] as Kind).sightOn ?? HALL_SIGHT).value !== 0);
@@ -1098,6 +1103,9 @@ export const seeHoleEnd = (): number => (PLAIN ? plain.seeHoleEnd() : kinds.prop
  */
 export function updateSeeThrough(x: number, y: number, z: number, props: number, top: number, floor = 0, open = 0,
   builtOpen = 0, fenceOpen = 0, propsOver = 1): void {
+  seeAsked = [x, y, z, props, top, floor, open, builtOpen, fenceOpen, propsOver];
+  // (nothing dissolved in a whole view: every hole's strength and every ghost's share is a share of `props`)
+  if (wholeView()) props = 0;
   if (PLAIN) {
     plain.updateSeeThrough(x, y, z, props, top);
     return;
@@ -1140,6 +1148,19 @@ export function updateSeeThrough(x: number, y: number, z: number, props: number,
   kinds.propFoot.whole.value = kinds.prop.whole.value;
   PROP_ACROSS_NOW.value = acrossHeld ?? PROP_ACROSS.close + (PROP_ACROSS.top - PROP_ACROSS.close) * top;
 }
+
+/** what the game last asked of `updateSeeThrough`, `hallSightCone` and `fadeWhole`: a whole view (`core/wholeView.ts`)
+ *  draws none of it, and it's put back as that view is let go */
+let seeAsked: Parameters<typeof updateSeeThrough> | null = null;
+let coneAsked: Parameters<typeof hallSightCone> | null = null;
+const wholeAsked = new Map<FadesWhole, number>();
+// (set again at once, as asked: with the game frozen, no frame of its own sets them. The cone first: a wall's depth
+// is let go by it, `fadeWhole`)
+onWholeView(() => {
+  if (coneAsked) hallSightCone(...coneAsked);
+  if (seeAsked) updateSeeThrough(...seeAsked);
+  for (const [kind, share] of [...wholeAsked]) fadeWhole(kind, share);
+});
 
 /** For a harness (tools/lab): every roof thinned from above by `ghost` (null: the game's), from the next frame: thinner,
  *  what lies under one shows enough to read the fog on it. */

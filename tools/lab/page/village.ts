@@ -190,6 +190,7 @@ export async function village(lab: Lab, options: VillageOptions): Promise<Report
     heroFaceNotBlinding: () => heroFaceNotBlinding(lab, options.canary),
     heroBesideFire: () => heroBesideFire(lab, options.canary),
     sightBlacksOut: () => sightBlacksOut(lab, options.canary),
+    freeCamWhole: async () => (await import('./villageFreeCam')).freeCamWhole(lab, options.canary),
     portalReturn: () => portalReturn(lab, options.canary),
     // (loaded as it runs: a commit an A/B compares that has no grass spread never loads it)
     grassOnLow: async () => (await import('./villageGrassLow')).grassOnLow(lab, options.canary),

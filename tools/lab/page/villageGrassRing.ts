@@ -56,7 +56,7 @@ interface BandSum { blades: number; light: number; pairs: number; steps: number 
 interface BandChange { blades: number; grain: number; after: number; change: number }
 
 /** Every object up from `object` to the scene, and each one's siblings: what must hide for it alone to be drawn. */
-function hiddenAround(object: THREE.Object3D): THREE.Object3D[] {
+export function hiddenAround(object: THREE.Object3D): THREE.Object3D[] {
   const hidden: THREE.Object3D[] = [];
   for (let at: THREE.Object3D = object; at.parent; at = at.parent) {
     for (const sibling of at.parent.children) {
@@ -87,7 +87,7 @@ function bladesAlone(lab: Lab, ahead: THREE.Vector2): [Canvas, Canvas] {
 }
 
 /** The ground (y = 0) under the canvas's pixel (x, y from its bottom row), or null past the horizon. */
-function groundUnder(canvas: Canvas, x: number, y: number, ray: THREE.Ray, out: THREE.Vector3): THREE.Vector3 | null {
+export function groundUnder(canvas: Canvas, x: number, y: number, ray: THREE.Ray, out: THREE.Vector3): THREE.Vector3 | null {
   const ndc = new THREE.Vector3((x + 0.5) / canvas.width * 2 - 1, (y + 0.5) / canvas.height * 2 - 1, 0.5);
   ray.origin.setFromMatrixPosition(G.camera.matrixWorld);
   ray.direction.copy(ndc.unproject(G.camera)).sub(ray.origin).normalize();

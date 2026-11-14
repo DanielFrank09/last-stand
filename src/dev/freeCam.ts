@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { G } from '../state';
 import { isDown } from '../core/input';
 import { overFrame } from '../core/renderer';
+import { setWholeView } from '../core/wholeView';
 
 /** how fast it flies (m/s) at first, the wheel's step on it, and its bounds; Shift's and Ctrl's share of it */
 const SPEED = { start: 10, step: 1.25, least: 0.5, most: 120, fast: 4, slow: 0.2 };
@@ -41,6 +42,8 @@ export function setFreeCam(on: boolean): void {
   state.on = on;
   state.held.clear();
   G.player.idle = on;
+  // (the world whole from it: the game's views thin, fog and draw the grass for where their own camera stands)
+  setWholeView(on);
   if (on) {
     const cam = G.camera;
     state.pos.copy(cam.position);
