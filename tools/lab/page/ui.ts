@@ -64,7 +64,8 @@ import { closeVillageHud, openVillageHud, VILLAGE_HUD_CANARY, villageHudShown } 
 import { closeHeroesWarming, HEROES_WARMING_CANARY, heroesWarmingShown, openHeroesWarming } from './uiHeroesWarming';
 import { closeVillageMap, openVillageMap, VILLAGE_MAP_CANARY, VILLAGE_MAP_WALK_CANARY, villageMapShown }
   from './uiVillageMap';
-import { closeDecisionTouch, decisionTouchShown, hudTouchShown, openDecisionTouch, openHudTouch, TOUCH_CANARIES }
+import { closeDecisionTouch, decisionTouchShown, hudTouchShown, openDecisionTouch, openHudTouch, TOUCH_CANARIES,
+  touchMode }
   from './uiTouch';
 import { BUTTONS_CANARY, lobbyButtonsShown, openButtonsTouch, runButtonsShown } from './uiButtons';
 import { autoFullChecked, autoFullPictures, ESC_CANARY, FULL_CANARY } from './uiFullScreen';
@@ -89,7 +90,8 @@ export type UiState =
   | 'behindProps' | 'cloudIdentity'
   | 'logLobby' | 'perfAsk' | 'pauseLobby' | 'betaNotice' | 'coop' | 'coopRename' | 'bugReport' | 'panelLinks'
   | 'villageMap' | 'villageHud' | 'villageHudTouch'
-  | 'heroesWarming' | 'skillTipsTouch' | 'sheetTouch' | 'litTouch' | 'buttonsTouch' | 'coopTouch' | 'autoFull'
+  | 'heroesWarming' | 'skillTipsTouch' | 'sheetTouch' | 'litTouch' | 'buttonsTouch' | 'coopTouch' | 'panelLinksTouch'
+  | 'autoFull'
   | 'run' | 'scores' | 'perf' | 'perfMini' | 'perfGraph' | 'perfParty'
   | 'decision' | 'perfAskBreak' | 'pause' | 'pauseSettings' | 'pausePerformance' | 'pauseBeta' | 'profiling'
   | 'pauseVolume'
@@ -1037,7 +1039,15 @@ const STEPS: Record<UiState, Steps> = {
   panelLinks: {
     open: async () => (await panelLinksModule()).openPanelLinks(canaryAsked),
     close: async () => (await panelLinksModule()).closePanelLinks(),
-    check: async () => (await panelLinksModule()).panelLinksShown(),
+    check: async () => (await panelLinksModule()).panelLinksShown('panelLinks'),
+  },
+  panelLinksTouch: {
+    open: async (lab) => {
+      await touchMode(lab);
+      (await panelLinksModule()).openPanelLinks(canaryAsked);
+    },
+    close: async () => (await panelLinksModule()).closePanelLinks(),
+    check: async () => (await panelLinksModule()).panelLinksShown('panelLinksTouch'),
   },
   betaNotice: { open: openBetaNotice, close: closeBetaNotice, check: betaNoticeShown },
   skillTipsTouch: { open: openSkillTipsTouch, close: closeSkillTipsTouch, check: skillTipsShown },
@@ -1238,7 +1248,7 @@ export async function ui(lab: Lab, options: UiOptions): Promise<Report> {
     lines.push(`  canary: ${SUMMARY_CANARY.what} ${caught ? 'caught' : 'went unseen'}`);
     if (!caught) missed.push(`${state}: the canary's ${SUMMARY_CANARY.what} went unseen`);
   }
-  if (state === 'panelLinks' && !VILLAGE) {
+  if ((state === 'panelLinks' || state === 'panelLinksTouch') && !VILLAGE) {
     const caught = found.problems.some((problem) => problem.includes(PANEL_LINKS_CANARY.name));
     lines.push(`  canary: ${PANEL_LINKS_CANARY.what} ${caught ? 'caught' : 'went unseen'}`);
     if (!caught) missed.push(`${state}: the canary's ${PANEL_LINKS_CANARY.what} went unseen`);

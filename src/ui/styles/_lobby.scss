@@ -102,13 +102,15 @@
   background: $well; user-select: none; }
 #{$village} #opt-wave .wv-val { min-width: 6.5em; }
 #opt-wave .wv-val small { color: var(--accent); }
-// (in rows of three, each in its column: one more on a line, Install or Report a bug, wrapped alone onto the panel's
-// corner, and six fit one line only under 13 px; `lab ui --states panelLinks --panels`)
-.menu-links { display: grid; grid-template-columns: repeat(3, auto); justify-content: space-between; gap: 0 6px; }
-// (their two rows no taller than the one with its padding was, but on touch, where they keep a finger's padding: the
-// panel's body scrolls a few px more there, as it's made to on a short screen)
+// (in rows of three equal columns, each link centred in its own, the rows apart: one more on a line, Install or
+// Report a bug, wrapped alone onto the panel's corner, and six fit one line only under 13 px; justified to the edges,
+// the outer ones ran into the panel's corner brackets and the rows read as links of two lines;
+// `lab ui --states panelLinks,panelLinksTouch --panels`)
+.menu-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-items: center; gap: 6px 6px; }
+// (each row no taller than the one row was with its padding; on touch a finger's height, in real css px. A short
+// screen's are as main's were, `_responsive.scss`)
 .menu-links .link { padding-block: 0; line-height: 1.1; }
-body.touch .menu-links .link { padding-block: 4px; }
+body.touch .menu-links .link { min-height: calc(28px / var(--ui, 1)); }
 
 .menu-right { position: relative; width: 290px; padding: 12px 14px 14px; display: grid; grid-template-rows: auto minmax(0, 1fr); background: linear-gradient(270deg, rgba(8,7,9,.94), rgba(8,7,9,.84)); }
 .tabs { display: flex; gap: 4px; border-bottom: 1px solid rgba($frame, .45); margin-bottom: 10px; }

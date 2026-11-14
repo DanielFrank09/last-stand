@@ -24,6 +24,8 @@
 .br-kind { padding: 6px 4px; font: 600 14px var(--font-body); line-height: 1.15; color: var(--ink); cursor: $cursor-hand;
   background: $well; border: 1px solid rgba($frame, .45); border-radius: 3px; }
 .br-kind:hover { border-color: var(--frame); color: #fff; }
+// (eleven: the last across two places, so no row ends short)
+.br-kind:last-child { grid-column: span 2; }
 .br-kind.on { background: $well-lit; border-color: var(--highlight); color: var(--highlight); box-shadow: inset 0 0 0 1px rgba($highlight, .35); }
 .br-hint { min-height: 2.5em; font-size: 13px; line-height: 1.25; color: var(--ink-dim); }
 
@@ -39,6 +41,8 @@
 .br-shot-side { display: flex; flex-direction: column; gap: 4px; min-width: 0; font-size: 14px; }
 .br-shot-side small { font-size: 12px; line-height: 1.25; color: var(--ink-dim); }
 .br-check { display: flex; align-items: center; gap: 6px; cursor: $cursor-hand; }
+// (in the theme's gold, as the settings' boxes: the browser's own blue was the form's one colour off it)
+.br-check input { accent-color: var(--accent); cursor: $cursor-hand; }
 
 // the fields
 .br-box textarea, .br-box input[type='text'] { width: 100%; box-sizing: border-box; padding: 7px 9px; font: 15px/1.3 var(--font-body);
@@ -98,13 +102,14 @@ body.touch {
   .br-form, .br-done { gap: 5px; }
   .br-cols {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    grid-template-areas: 'klabel hint' 'kinds kinds' 'tlabel elabel' 'text exp' 'text shot' 'text sent';
+    grid-template-areas: 'klabel klabel' 'kinds kinds' 'hint hint' 'tlabel elabel' 'text exp' 'text shot' 'text sent';
     gap: 5px 18px;
   }
   .br-col { display: contents; }
   #br-kind-label { grid-area: klabel; }
   .br-kinds { grid-area: kinds; grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .br-hint { grid-area: hint; min-height: 0; align-self: end; font-size: 12px; }
+  // (on a line of its own under them, as beside their label half the form's width wrapped it)
+  .br-hint { grid-area: hint; min-height: 1.25em; }
   .br-label[for='br-text'] { grid-area: tlabel; }
   #br-text { grid-area: text; min-height: 0; }
   .br-label[for='br-expected'] { grid-area: elabel; }
@@ -114,7 +119,6 @@ body.touch {
   .br-sent pre { max-height: 90px; }
   .br-shot .br-shot-frame { width: 100px; height: 57px; }
   .br-shot .br-shot-side small { min-height: 0; }
-  .br-privacy { font-size: 11px; }
 }
 // typed into on a phone: the form at the top of what the keyboard leaves (ui/aboveKeyboard.ts)
 #bug-report.typing { align-items: flex-start; top: var(--seen-top, 0px); bottom: auto; height: var(--seen, 50vh); padding-top: 6px; }

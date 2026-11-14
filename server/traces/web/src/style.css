@@ -44,7 +44,8 @@ button { background: #232834; color: var(--text); border: 1px solid var(--line);
 button:hover { border-color: var(--accent); }
 .empty { color: var(--dim); padding: 24px; text-align: center; }
 h2.section { font-size: 18px; margin: 36px 0 4px; font-weight: 600; }
-td.kind { white-space: nowrap; }
+td.kind, .reports td.when { white-space: nowrap; }
+th.num { text-align: right; }
 td.happened { width: 100%; overflow-wrap: anywhere; }
 td.happened summary { cursor: pointer; }
 .whole { margin-top: 8px; }
