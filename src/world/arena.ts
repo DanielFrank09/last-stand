@@ -301,15 +301,20 @@ export async function buildArena(scene: THREE.Scene, renderer: THREE.WebGLRender
       // (and the sun's where it's kept: as it goes round, a redraw every 20 s or so)
       const held = holdMoonShadow(moon, now === 'village');
       const sun = now === 'village' ? moon.position.toArray().map((v) => Math.round(v * SUN_STEPS)).join() : '';
-      if (held || stillDrawn.place !== now || stillDrawn.rev !== propState.rev || stillDrawn.lamps !== lamps
-        || stillDrawn.sun !== sun) {
+      // (each drawn again only when it changed: the sun's step drew the lights' twelve to twenty-four cube faces
+      // with its own map, and a lamp's hand-over the sun's 4 million triangles, a hitch every 20 s and at every lamp
+      // he walked past by night, from play "FPS is not stable, even on high end hardware")
+      const all = held || stillDrawn.place !== now || stillDrawn.rev !== propState.rev;
+      const lampsMoved = stillDrawn.lamps !== lamps, sunMoved = stillDrawn.sun !== sun;
+      if (all || lampsMoved || sunMoved) {
         // (and its breakables' shadows cast as one, each standing prop's, a frame before: `world/breakableShadows.ts`)
         if (!hallShown && breakablesAt.get(shown) !== propState.rev) {
           places[shown].breakables?.refresh();
           breakablesAt.set(shown, propState.rev);
           return;
         }
-        drawStillShadows(renderer, scene, G.camera, hallShown ? hallGroup : places[shown].group, moon.shadow);
+        drawStillShadows(renderer, scene, G.camera, hallShown ? hallGroup : places[shown].group, moon.shadow,
+          { lights: all || lampsMoved, sun: all || sunMoved });
         stillDrawn.place = now;
         stillDrawn.rev = propState.rev;
         stillDrawn.lamps = lamps;

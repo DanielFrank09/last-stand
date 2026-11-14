@@ -58,8 +58,9 @@ import { lampsLitAsTheyCast } from './villageLampsCast';
 import { everyLampCasts } from './villageLampShadows';
 import { hallCulledByDoor, viewBy } from './villageHallCull';
 import { sunShadowKept } from './villageSunShadow';
+import { sunStepDrawsItsMap } from './villageSunStep';
 import { curbsFaceUp, roadsBendWide } from './villageRoads';
-import { hoardShowsStash } from './villageHoard';
+import { chestDrawsFew, hoardShowsStash } from './villageHoard';
 import { escClosesHelp } from './villageHelpEsc';
 import { propHoleWhereHidden } from './villageSeeThrough';
 import { housesBesideFence, housesPastFence } from './villageFence';
@@ -169,6 +170,7 @@ export async function village(lab: Lab, options: VillageOptions): Promise<Report
     everyLampCasts: () => everyLampCasts(lab, options.canary),
     hallCulledByDoor: () => hallCulledByDoor(lab, options.canary),
     sunShadowKept: () => sunShadowKept(lab, options.canary),
+    sunStepDrawsItsMap: () => sunStepDrawsItsMap(lab, options.canary),
     heroLeftStands: () => heroLeftStands(lab, options.canary),
     cancelledOnHisFloor: () => cancelledOnHisFloor(lab, options.canary),
     hallShownAtOnce: () => hallShownAtOnce(lab, options.canary),
@@ -178,6 +180,7 @@ export async function village(lab: Lab, options: VillageOptions): Promise<Report
     roadsBendWide: () => roadsBendWide(options.canary),
     curbsFaceUp: () => curbsFaceUp(options.canary),
     hoardShowsStash: () => hoardShowsStash(lab, options.canary),
+    chestDrawsFew: async () => chestDrawsFew(options.canary),
     escClosesHelp: () => escClosesHelp(lab, options.canary),
     wornStaysOn: () => wornStaysOn(lab, options.canary),
     heroFaceNotBlinding: () => heroFaceNotBlinding(lab, options.canary),

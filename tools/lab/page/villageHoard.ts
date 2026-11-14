@@ -98,3 +98,41 @@ export async function hoardShowsStash(lab: Lab, canary: boolean): Promise<Lights
   if (oneDrawn >= half || half >= full) problems.push(`${line}: not more as it fills`);
   return { lines: [line], problems, caught: null, moments: [] };
 }
+
+/** the most draws the chest may take (35 as it's built, 18 of them its hoard's; each part a draw of its own it was 90) */
+const CHEST_DRAWS_MOST = 40;
+/** the parts the canary adds to the chest's box, each a draw of its own */
+const CANARY_PARTS = 12;
+
+/** The meshes drawn under the chest: each is a draw (none of them is instanced, none has two materials). */
+function chestDraws(chest: THREE.Object3D): number {
+  let draws = 0;
+  chest.traverseVisible((part) => {
+    if ((part as THREE.Mesh).isMesh) draws++;
+  });
+  return draws;
+}
+
+/**
+ * The chest drawn in few draws: its parts of one material are one mesh (`mergeChildren` in world/props.ts). Built a
+ * mesh a board, strap and plate, it was 90 of the 354 draws a phone's frame took beside it, and three's work for each
+ * draw is most of that phone's frame in the village (traces PFQA-FY0M, 02XR-1GKY). `canary` adds parts of their own to
+ * its box, which must be counted.
+ */
+export function chestDrawsFew(canary: boolean): LightsChecked {
+  const chest = G.scene.getObjectByName('chest-hoard')?.parent;
+  if (!chest) throw new Error('lab: village: no chest in the scene');
+  const planted: THREE.Mesh[] = [];
+  if (canary) {
+    const geometry = new THREE.BoxGeometry(0.05, 0.05, 0.05);
+    const material = new THREE.MeshStandardMaterial();
+    for (let k = 0; k < CANARY_PARTS; k++) planted.push(new THREE.Mesh(geometry, material));
+    chest.add(...planted);
+  }
+  const draws = chestDraws(chest);
+  chest.remove(...planted);
+  const line = `the chest's draws: ${draws} (at most ${CHEST_DRAWS_MOST})`;
+  const over = draws > CHEST_DRAWS_MOST;
+  if (canary) return { lines: [line], problems: [], caught: over, moments: [] };
+  return { lines: [line], problems: over ? [`${line}: its parts draw one by one`] : [], caught: null, moments: [] };
+}
