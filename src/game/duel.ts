@@ -34,8 +34,15 @@ const WINS_USUAL = 3;
  *  player's part by its slot. */
 export interface DuelSetup { ground: BiomeId; aSide: 1 | 2; wins: number; gear: boolean; parts: [number, DuelPart][] }
 
-/** The duel as set up at the rack (the host's; a guest's is the host's word of it), and the guests who said they're
- *  ready for it, by slot (any change to it asks them again). */
+/** A player's ask for a place another holds (Victor on #627: "If already taken, it should ask the other player to
+ *  free the spot and spectate instead"): `by` wants the place `holder` holds on side `part`, by their slots. */
+export interface DuelAsk { holder: number; by: number; part: Side }
+/** Why an ask came to nothing: the holder said no, or someone else had asked him already. */
+export type AskRefusal = 'declined' | 'busy';
+
+/** The duel as set up at the rack (the host's; a guest's is the host's word of it), the guests who said they're
+ *  ready for it, by slot (any change to it asks them again), the asks for a place still waiting for their answer,
+ *  and the last of the local player's asks refused (shown in the menu until he picks again). */
 export const duelSetup = {
   ground: BIOME_IDS[0] as BiomeId,
   aSide: 1 as 1 | 2,
@@ -43,6 +50,8 @@ export const duelSetup = {
   gear: true,
   parts: new Map<number, DuelPart>(),
   ready: new Set<number>(),
+  asks: [] as DuelAsk[],
+  refused: null as { holder: number; why: AskRefusal } | null,
 };
 
 export const setupNow = (): DuelSetup => ({
@@ -62,13 +71,85 @@ export function readSetup(m: unknown): DuelSetup | null {
   return { ground: s.ground as BiomeId, aSide: s.aSide, wins: s.wins as number, gear: s.gear, parts };
 }
 
-/** A guest: the host's word of the duel as set up, and who is ready for it. */
-export function takeSetup(m: unknown, ready: unknown): void {
+/** Asks as a message carries them, checked: the malformed left out. */
+function readAsks(m: unknown): DuelAsk[] {
+  if (!Array.isArray(m)) return [];
+  return m.flatMap((row: unknown) => {
+    const ask = row as Partial<DuelAsk> | null;
+    const fine = ask && Number.isInteger(ask.holder) && Number.isInteger(ask.by) && (ask.part === 0 || ask.part === 1);
+    return fine ? [{ holder: ask.holder!, by: ask.by!, part: ask.part! }] : [];
+  });
+}
+
+/** A guest: the host's word of the duel as set up, who is ready for it, and the asks for a place waiting. */
+export function takeSetup(m: unknown, ready: unknown, asks: unknown): void {
   const s = readSetup(m);
   if (!s) return;
   Object.assign(duelSetup, { ground: s.ground, aSide: s.aSide, wins: s.wins, gear: s.gear });
+  // (a refusal said goes once the places have changed since)
+  if (JSON.stringify(s.parts) !== JSON.stringify([...duelSetup.parts])) duelSetup.refused = null;
   duelSetup.parts = new Map(s.parts);
   duelSetup.ready = new Set(Array.isArray(ready) ? ready.filter((n): n is number => Number.isInteger(n)) : []);
+  duelSetup.asks = readAsks(asks);
+}
+
+// --- places at the rack (the host's ruling; net/session.ts carries a guest's picks and answers to it) ---------
+/** The slots of the room's players holding `part`, by slot. */
+const holders = (part: DuelPart): number[] =>
+  G.players.map((p) => p.slot).filter((slot) => duelSetup.parts.get(slot) === part).sort((a, b) => a - b);
+
+/** What came of a pick: moved there, the holder asked, nothing (his own place, or no one to ask), or refused at
+ *  once (the holder already asked by another). */
+export type PlaceOutcome = 'moved' | 'asked' | 'none' | 'busy';
+
+/**
+ * Host: the player in `by` picked a place at the rack: `part`, a side or the watchers, and on a side the place
+ * `holder` holds (null: a free one). A free place or the watchers he takes at once; one held is asked of its holder,
+ * who gives it up or not (`answerPlace`). His earlier ask, if any, is let go: a player asks for one place at a time.
+ */
+export function wantPlace(by: number, part: DuelPart, holder: number | null): PlaceOutcome {
+  duelSetup.asks = duelSetup.asks.filter((ask) => ask.by !== by);
+  if (duelSetup.parts.get(by) === part) return 'none';
+  const held = holders(part);
+  if (part === 'watch' || held.length < duelSetup.aSide) {
+    duelSetup.parts.set(by, part);
+    return 'moved';
+  }
+  const asked = holder !== null && held.includes(holder) ? holder : held[0];
+  if (asked === undefined || asked === by) return 'none';
+  if (duelSetup.asks.some((ask) => ask.holder === asked)) return 'busy';
+  duelSetup.asks.push({ holder: asked, by, part });
+  return 'asked';
+}
+
+/** Host: the holder in `holder` answered the ask for his place: given up (he watches, the asker takes it) or kept.
+ *  Returns the ask answered and whether the two swapped, or null if none was waiting. */
+export function answerPlace(holder: number, yes: boolean): { ask: DuelAsk; swapped: boolean } | null {
+  const ask = duelSetup.asks.find((one) => one.holder === holder);
+  if (!ask) return null;
+  duelSetup.asks = duelSetup.asks.filter((one) => one !== ask);
+  const still = duelSetup.parts.get(holder) === ask.part && G.players.some((p) => p.slot === ask.by);
+  if (!yes || !still) return { ask, swapped: false };
+  duelSetup.parts.set(holder, 'watch');
+  duelSetup.parts.set(ask.by, ask.part);
+  return { ask, swapped: true };
+}
+
+/** Host: the asks the room has outlived let go (the asker or the holder gone, the holder off that place); one whose
+ *  place came free meanwhile is the asker's at once. Returns whether any part changed. */
+export function settleAsks(): boolean {
+  let moved = false;
+  const here = new Set(G.players.map((p) => p.slot));
+  duelSetup.asks = duelSetup.asks.filter((ask) => {
+    if (!here.has(ask.by)) return false;
+    if (here.has(ask.holder) && duelSetup.parts.get(ask.holder) === ask.part) return true;
+    if (holders(ask.part).length < duelSetup.aSide) {
+      duelSetup.parts.set(ask.by, ask.part);
+      moved = true;
+    }
+    return false;
+  });
+  return moved;
 }
 
 /** A match's turns: the count before a round, the round, the pause after it, the result. */

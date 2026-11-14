@@ -72,7 +72,7 @@ body.touch .stow-hint kbd { display: none; }
   .vc-page[data-page="pvp"] .pvp-choices { gap: 6px; }
   /* (a player alone has no sides to show: the choices take the card's width) */
   .vc-page[data-page="pvp"] .pvp-choices:has(+ #pvp-sides.hidden) { grid-column: 1 / -1; justify-self: center; width: 60%; }
-  .vc-page[data-page="pvp"] :is(#pvp-note, #pvp-go, #pvp-party) { grid-column: 1 / -1; justify-self: center; }
+  .vc-page[data-page="pvp"] :is(#pvp-note, #pvp-go, #pvp-party, #duel-ask) { grid-column: 1 / -1; justify-self: center; }
   .vc-page[data-page="pvp"] #pvp-go { width: auto; font-size: 17px; padding: 8px 30px; }
   .pvp-side { padding: 5px 8px; gap: 4px; }
   #stash-filter { top: calc(100% + 6px); bottom: auto; }

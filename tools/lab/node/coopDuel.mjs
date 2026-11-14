@@ -4,9 +4,11 @@
 // falls, turn about. Judged: every game has the same duel at every turn of it (its round, who took it, the score), a
 // blow struck on one screen takes life on the other's own, the fallen is down on both, no foe stands but the rivals,
 // nothing is cast through the count, the result names the same winner on both, and both come back to the village.
+// Before the menu, each player picks his own place at the rack (node/coopDuelPlaces.mjs).
 // `--canary`: the struck hero's life is put back every frame on its own game, so no round is ever won, which must be
-// found.
+// found; and the host loses the guest's picks of a place and its answers, which every step must find.
 import { labError } from './errors.mjs';
+import { takePlaces } from './coopDuelPlaces.mjs';
 
 /** the duel the check sets up: not the menu's own choices, so the guest's menu is seen to follow the host's */
 const SET_UP = { ground: 'forest', wins: 3, gear: false };
@@ -33,6 +35,9 @@ export async function fightDuel(pair, callPage, lines, { canary = false, picture
   const problems = [];
   const both = (fn, args) => Promise.all(ROLES.map((role, index) => callPage(pair.pages[index], fn, args?.(role))));
   const picture = async (name) => { if (pictures) lines.push(`pictured ${(await pair.picture(`duel-${name}`)).join(', ')}`); };
+
+  // --- the places: each player's own, a held one asked for (node/coopDuelPlaces.mjs) -------------------
+  problems.push(...await takePlaces(pair, callPage, lines, { canary, pictures }));
 
   // --- the menu -----------------------------------------------------------------------------------
   await callPage(pair.host, 'coopDuelSetUp', SET_UP);

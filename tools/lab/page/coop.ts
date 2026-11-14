@@ -33,8 +33,11 @@ import { lobbyCastInput, practiseInTheYard, watchHall, watchTags } from './coopL
 import { endInput, watchOut } from './coopEnd';
 import { pingInput, pingsNow, resetPings, PINGS, PING_FOE, type PingSample } from './coopPing';
 import { chatInput, chatNow, SAID, ESC_AT, QUIET, type ChatSample } from './coopChat';
-import { duelInput, duelNow, type DuelNow } from './coopDuel';
-export { coopDuelGo, coopDuelMenu, coopDuelRound, coopDuelSetUp } from './coopDuel';
+import { duelInput, duelNow, pickLost, type DuelNow } from './coopDuel';
+export {
+  coopDuelAnswer, coopDuelFit, coopDuelGo, coopDuelLosePicks, coopDuelMenu, coopDuelMouseBack, coopDuelParts,
+  coopDuelPlace, coopDuelRound, coopDuelSetUp,
+} from './coopDuel';
 export {
   coopCastInLobby, coopCloseHall, coopHallSeen, coopLeaveRun, coopLobbyBar, coopOpenHall, coopPractiseAgain,
   coopSummaryDone, coopTagsSeen,
@@ -753,6 +756,7 @@ function deliver(): void {
   while (wire.inbox.length && wire.inbox[0].due <= by) {
     const message = wire.inbox.shift()!;
     loseSpawns(message);
+    if (pickLost(message.data)) continue;
     for (const channel of wire.channels) {
       if (channel.name === message.name) channel.onmessage?.({ data: message.data });
     }

@@ -25,7 +25,10 @@ import type { HeroColourId } from '../data/heroColours';
 import { setGroundNet, addDrop, removeDrop, receiveItem, groundDrops, clearGround, type GroundDrop } from '../game/groundItems';
 import { setPingNet, pingHeard, clearPings } from '../game/ping';
 import { showBiomeSetting } from '../game/biome';
-import { duelHits, duelQuit, duelSetup, duelWord, readSetup, setDuelNet, setupNow, takeSetup, type DuelSetup } from '../game/duel';
+import {
+  answerPlace, duelHits, duelQuit, duelSetup, duelWord, readSetup, setDuelNet, setupNow, takeSetup, wantPlace,
+  type AskRefusal, type DuelPart, type DuelSetup,
+} from '../game/duel';
 
 import { setChatNet, chatHeard, chatNote, clearChat } from './chat';
 
@@ -284,6 +287,8 @@ export function leaveRoom(): void {
   setChatNet(null);
   setDuelNet(null);
   duelSetup.ready.clear();
+  duelSetup.asks = [];
+  duelSetup.refused = null;
   clearChat();
   for (const peer of session.peers.values()) dropPlayer(peer);
   session.peers.clear();
@@ -418,7 +423,7 @@ function onHello(from: string, m: Record<string, unknown>): void {
     };
     send('ctl', welcome, from);
     send('ctl', { t: 'gall', list: groundDrops() }, from);
-    send('ctl', { t: 'duel', setup: setupNow(), ready: [...duelSetup.ready] }, from);
+    send('ctl', duelWordNow(), from);
     send('hello', hello(), from);
     publishColours();
     hooks.changed();
@@ -522,14 +527,18 @@ function onControl(from: string, m: Record<string, unknown>): void {
       hooks.changed();
     } else if (m.t === 'duel' && from === session.hostId) {
       // (the duel as the host has set it up at the rack, and who is ready for it)
-      takeSetup(m.setup, m.ready);
+      takeSetup(m.setup, m.ready, m.asks);
       hooks.changed();
     } else if (m.t === 'dstart' && from === session.hostId && G.mode === 'menu') {
       const setup = readSetup(m.setup);
       if (!setup) return;
       const host = session.peers.get(from);
       if (host) host.inRun = true;
+      duelSetup.asks = [];
       hooks.startDuel(setup, m.seed as number);
+    } else if (m.t === 'dno' && from === session.hostId) {
+      // (our ask for a place came to nothing: its holder kept it, or was asked already)
+      if (Number.isInteger(m.holder) && (m.why === 'declined' || m.why === 'busy')) refused(m.holder as number, m.why);
     } else if (typeof m.t === 'string' && ['dround', 'dfight', 'dwon', 'dend'].includes(m.t) && from === session.hostId) {
       duelWord(m);
     } else if (m.t === 'foes' && from === session.hostId) {
@@ -563,6 +572,13 @@ function onControl(from: string, m: Record<string, unknown>): void {
     return;
   }
   if (m.t === 'dquit') { if (peer?.player) duelQuit(peer.player); return; }
+  // host: a guest picking a place at the rack, or answering an ask for its own
+  if (m.t === 'dpick') {
+    const part = m.part === 0 || m.part === 1 || m.part === 'watch' ? m.part : null;
+    if (peer && part !== null && G.mode === 'menu') placeWanted(peer.slot, part, Number.isInteger(m.holder) ? m.holder as number : null);
+    return;
+  }
+  if (m.t === 'danswer') { if (peer && G.mode === 'menu') askAnswered(peer.slot, m.yes === true); return; }
   if (peer?.player) onGuestControl(peer.player, m);
 }
 
@@ -570,8 +586,61 @@ function onControl(from: string, m: Record<string, unknown>): void {
  *  ready for the last is asked again. */
 export function sendDuelSetup(changed = true): void {
   if (role.current !== 'host') return;
-  if (changed) duelSetup.ready.clear();
-  send('ctl', { t: 'duel', setup: setupNow(), ready: [...duelSetup.ready] });
+  if (changed) {
+    duelSetup.ready.clear();
+    // (a refusal said goes once the places have changed since)
+    duelSetup.refused = null;
+  }
+  send('ctl', duelWordNow());
+}
+
+/** The host's word of the duel as set up: the setup, who is ready, and the asks for a place waiting. */
+const duelWordNow = (): Record<string, unknown> =>
+  ({ t: 'duel', setup: setupNow(), ready: [...duelSetup.ready], asks: duelSetup.asks });
+
+/** The local player picks a place at the rack (ui/pvpMenu.ts): `part`, and on a side the place `holder` holds (null:
+ *  a free one). The host rules it (`wantPlace`); a guest's goes to the host. */
+export function pickPlace(part: DuelPart, holder: number | null): void {
+  duelSetup.refused = null;
+  if (role.current === 'guest') sendControl({ t: 'dpick', part, holder });
+  else placeWanted(G.player.slot, part, holder);
+}
+
+/** Host: a pick ruled and its outcome told: the room told of a move or an ask, the asker of an ask refused at once. */
+function placeWanted(by: number, part: DuelPart, holder: number | null): void {
+  const outcome = wantPlace(by, part, holder);
+  if (outcome === 'moved') sendDuelSetup(true);
+  else if (outcome === 'asked') sendDuelSetup(false);
+  else if (outcome === 'busy' && holder !== null) tellRefused(by, holder, 'busy');
+  hooks.changed();
+}
+
+/** The local player answers the ask for his place (ui/pvpMenu.ts's prompt): given up, or kept. */
+export function answerAsk(yes: boolean): void {
+  if (role.current === 'guest') sendControl({ t: 'danswer', yes });
+  else askAnswered(G.player.slot, yes);
+}
+
+/** Host: an answer ruled: the two swapped and the room told, or the ask let go and its asker told it was kept. */
+function askAnswered(holder: number, yes: boolean): void {
+  const answered = answerPlace(holder, yes);
+  if (!answered) return;
+  sendDuelSetup(answered.swapped);
+  if (!answered.swapped) tellRefused(answered.ask.by, holder, 'declined');
+  hooks.changed();
+}
+
+/** Host: the player in `by` told its ask for the place `holder` holds came to nothing. */
+function tellRefused(by: number, holder: number, why: AskRefusal): void {
+  if (by === G.player.slot) { refused(holder, why); return; }
+  const peer = [...session.peers.values()].find((p) => p.slot === by);
+  if (peer) send('ctl', { t: 'dno', holder, why }, peer.id);
+}
+
+/** Our ask for a place came to nothing: said in the menu until we pick again. */
+function refused(holder: number, why: AskRefusal): void {
+  duelSetup.refused = { holder, why };
+  hooks.changed();
 }
 
 /** A guest: ready for the duel as set up, or not after all. */
@@ -590,6 +659,7 @@ export function sendDuelStart(setup: DuelSetup, seed: number): void {
   }
   for (const peer of session.peers.values()) peer.inRun = true;
   duelSetup.ready.clear();
+  duelSetup.asks = [];
   syncAway();
   syncReadying();
 }

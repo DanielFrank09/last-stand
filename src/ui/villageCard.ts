@@ -44,7 +44,8 @@ export function showVillageCard(o: VillageObject | null): void {
   shown = o;
   const card = $('#vcard');
   card.classList.toggle('hidden', !o);
-  if (!o) return;
+  // (closed, the duel's menu gives back an ask's prompt it held to the screen's top)
+  if (!o) { renderPvp(); return; }
   const page = o.use === 'portal' || o.use === 'training' ? 'portal' : o.use === 'pvp' ? 'pvp' : 'chronicle';
   $('.vc-grounds', card).classList.toggle('hidden', o.use !== 'training');
   card.dataset.page = page;
