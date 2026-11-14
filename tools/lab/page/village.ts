@@ -59,6 +59,8 @@ import { everyLampCasts } from './villageLampShadows';
 import { hallCulledByDoor, viewBy } from './villageHallCull';
 import { sunShadowKept } from './villageSunShadow';
 import { sunStepDrawsItsMap } from './villageSunStep';
+import { lampHandOverByFaces } from './villageLampHandOver';
+import { heroesStandInPieces } from './villageHeroesStand';
 import { curbsFaceUp, roadsBendWide } from './villageRoads';
 import { chestDrawsFew, hoardShowsStash } from './villageHoard';
 import { escClosesHelp } from './villageHelpEsc';
@@ -171,6 +173,8 @@ export async function village(lab: Lab, options: VillageOptions): Promise<Report
     hallCulledByDoor: () => hallCulledByDoor(lab, options.canary),
     sunShadowKept: () => sunShadowKept(lab, options.canary),
     sunStepDrawsItsMap: () => sunStepDrawsItsMap(lab, options.canary),
+    lampHandOverByFaces: () => lampHandOverByFaces(lab, options.canary),
+    heroesStandInPieces: () => heroesStandInPieces(lab, options.canary),
     heroLeftStands: () => heroLeftStands(lab, options.canary),
     cancelledOnHisFloor: () => cancelledOnHisFloor(lab, options.canary),
     hallShownAtOnce: () => hallShownAtOnce(lab, options.canary),

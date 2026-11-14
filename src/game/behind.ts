@@ -42,6 +42,15 @@ export const queued = (key: string): boolean => jobs.some((job) => job.key === k
 /** Whether anything is building behind the lobby. */
 export const buildingBehind = (): boolean => jobs.length > 0;
 
+/** `key`'s build moved to the head of the queue, its pieces next: it's wanted, but not worth a held frame. False if
+ *  it isn't queued. */
+export function buildFirst(key: string): boolean {
+  const i = jobs.findIndex((job) => job.key === key);
+  if (i < 0) return false;
+  if (i > 0) jobs.unshift(...jobs.splice(i, 1));
+  return true;
+}
+
 /** `key`'s build finished now, all its pieces left at once: it's wanted. False if it isn't queued. */
 export function finishNow(key: string): boolean {
   const i = jobs.findIndex((job) => job.key === key);

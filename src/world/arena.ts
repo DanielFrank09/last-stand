@@ -11,7 +11,7 @@ import { groundHeight, setRelief } from './ground';
 import { setAdaptScale } from '../core/renderer';
 import { oneEnvironment, rigPointLights, stillForMeshlets } from '../core/webgpu';
 import { castBreakablesAsOne, type BreakableShadows } from './breakableShadows';
-import { bakeStaticShadows, compileEnvMaps as compileEach, drawStillShadows, envMap, lampShadowsAsked, mergeStill, sunShadowStill, type Biome, type BiomeBuilder, type BiomeLook } from './props';
+import { bakeStaticShadows, compileEnvMaps as compileEach, drawStillShadows, envMap, lampFaceDrawn, lampShadowsAsked, mergeStill, nextLampFace, sunShadowStill, type Biome, type BiomeBuilder, type BiomeLook } from './props';
 import { countGhosts, depthOfWhatStaysWhole } from '../core/seeThrough';
 import { GHOST_COUNT_LAYER } from '../core/layers';
 import { cullWhileDrawn, trimShadowCasters } from './culling';
@@ -319,6 +319,14 @@ export async function buildArena(scene: THREE.Scene, renderer: THREE.WebGLRender
         stillDrawn.rev = propState.rev;
         stillDrawn.lamps = lamps;
         stillDrawn.sun = sun;
+        return;
+      }
+      // (a lamp's cube at the lamp its light moved to, a face a frame: `drawLampShadows`)
+      const next = nextLampFace();
+      if (next) {
+        drawStillShadows(renderer, scene, G.camera, hallShown ? hallGroup : places[shown].group, moon.shadow,
+          { lights: [next.light], sun: false, face: next.face });
+        lampFaceDrawn(next.light, next.face);
       }
     },
     /** The sun's still shadow drawn again at the next frame: its map was made anew, or it's the still world's now. */

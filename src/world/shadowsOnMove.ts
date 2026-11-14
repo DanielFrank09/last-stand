@@ -9,7 +9,7 @@
 // --only shadowsOnMove`: 3 cm, 2 to 8%). A quality switch, live.
 import * as THREE from 'three';
 import { G } from '../state';
-import { skipAfterShadows } from './culling';
+import { skipAfterShadows, stillChangesKeptMaps } from './culling';
 import { shadowMovers } from './props';
 
 /** how far a part drawn over the kept maps goes before they're drawn again (m) */
@@ -72,7 +72,9 @@ const within = (a: number[], b: number[]): boolean =>
 /** Whether the frame's own draw may leave the maps as they stand: nothing moved since it last drew them. */
 function leavesThem(camera: THREE.Camera, still: boolean): boolean {
   if (still) {
-    owed = true;
+    // (a face of a cube not yet whole changes nothing a frame reads: owed for it, his shadow was drawn again in
+    // each of a hand-over's twelve frames)
+    if (stillChangesKeptMaps()) owed = true;
     return false;
   }
   if (camera !== G.camera || !onMoveOnly || G.arena.place !== 'village') return false;

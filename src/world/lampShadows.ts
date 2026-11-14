@@ -5,8 +5,8 @@
 // alone drawn into it over what stands still: their dozen draws a face, not the village's.
 import { RUNNING } from '../core/rendererChoice';
 import * as THREE from 'three';
-import { afterShadows, stillBeingDrawn, type ShadowDraw } from './culling';
-import { lampShadowLights } from './props';
+import { afterShadows, stillDrawsWhole, type ShadowDraw } from './culling';
+import { lampShadowLights, lampShadowReady } from './props';
 import { HERO_SHADOW_LAYER, WORLD_LAYER } from '../core/layers';
 import { G } from '../state';
 
@@ -62,7 +62,9 @@ function copyDepth(renderer: THREE.WebGLRenderer, from: THREE.WebGLRenderTarget,
 function keepStill(renderer: THREE.WebGLRenderer): void {
   for (const light of lampShadowLights()) {
     const map = light.shadow.map as THREE.WebGLCubeRenderTarget | null;
-    if (!map) continue;
+    // (only a cube this still draw drew whole: one it left holds the heroes the last frame drew over it, and one it
+    // drew a face of isn't done)
+    if (!map || !stillDrawsWhole(light)) continue;
     let keeper = kept.get(light);
     if (!keeper || keeper.width !== map.width) {
       keeper?.dispose();
@@ -128,6 +130,8 @@ function heroesOverStill(renderer: THREE.WebGLRenderer, draw: ShadowDraw, scene:
     const keeper = kept.get(light);
     const map = light.shadow.map as THREE.WebGLCubeRenderTarget | null;
     if (!keeper || !map || keeper.width !== map.width) continue;
+    // (its cube being drawn a face a frame at a new lamp: the kept one is its last lamp's, and it lights nothing yet)
+    if (!lampShadowReady(light)) continue;
     const reaches = reachesAHero(light);
     // (past its reach, its map is copied back still once, then left)
     if (!reaches && !overStill.has(light)) continue;
@@ -160,8 +164,7 @@ export function castHeroesOverLamps(renderer: THREE.WebGLRenderer): void {
   afterShadows((draw, scene, camera, still) => {
     if (!lampShadowLights().size) return;
     if (still) {
-      // (only cubes this still draw drew: one it left holds the heroes the last frame drew over it)
-      if (stillBeingDrawn().lights) keepStill(renderer);
+      keepStill(renderer);
       return;
     }
     // (the frame's own draw alone: not the arms' through the eyes, nor a warm-up's or a picture's)
