@@ -28,7 +28,7 @@ export const README_SHOTS = ['village', 'campfire', 'hall', 'stash', 'forest', '
 export const UI_STATES = [
   'lobby', 'tooltip', 'glow', 'help', 'saves', 'heroes', 'readying', 'readyingHeroes', 'clicked', 'views',
   'behindProps', 'cloudIdentity',
-  'logLobby', 'perfAsk', 'pauseLobby', 'betaNotice', 'coop', 'coopRename', 'bugReport',
+  'logLobby', 'perfAsk', 'pauseLobby', 'betaNotice', 'coop', 'coopRename', 'bugReport', 'panelLinks',
   'villageMap', 'villageHud', 'villageHudTouch',
   'heroesWarming', 'skillTipsTouch', 'sheetTouch', 'litTouch', 'buttonsTouch', 'coopTouch', 'autoFull',
   'run', 'scores', 'perf', 'perfMini', 'perfGraph', 'perfParty', 'decision', 'perfAskBreak', 'pause', 'pauseSettings',
@@ -425,6 +425,8 @@ export const COMMANDS = {
           + 'behindProps (a column planted between the camera and each dummy\'s label: '
           + 'every label hidden behind it, every one shown with it gone; the canary plants it aside), run (the HUD '
           + 'with a hurt foe\'s bar and damage numbers), '
+          + 'panelLinks (with --panels: the hero panel\'s row of links, Install shown, each on its one line, '
+          + 'inside the panel and found, Report a bug opening the form; the canary adds a link as long as two), '
           + 'scores, perf, perfMini (the performance overlay\'s Mini pressed in the pause menu: the frame rate '
           + 'and its graph alone, then Full and Off), perfGraph (the overlay\'s frame rate and graph scale read '
           + 'after every frame of its first 5 s, never far over the frames\' own rate; the canary runs a burst of '

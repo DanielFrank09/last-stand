@@ -43,6 +43,7 @@ import { openBook } from '../../../src/ui/loadoutEditor';
 import { hideTooltip, itemTooltip, showTooltipAt } from '../../../src/ui/tooltip';
 import { hdrOutput } from './hdrOutput';
 import { closePauseLobby, HOUR_CANARY, hourHiddenInRun, hourShown, openPauseLobby } from './uiHour';
+import { VILLAGE } from '../../../src/core/beta';
 import { panelsBack, showPanels } from './lobbyPanels';
 import { battleLog } from './battleLog';
 import { digitsShown } from './digits';
@@ -69,10 +70,7 @@ import { BUTTONS_CANARY, lobbyButtonsShown, openButtonsTouch, runButtonsShown } 
 import { autoFullChecked, autoFullPictures, ESC_CANARY, FULL_CANARY } from './uiFullScreen';
 import { BETA_NOTICE_CANARY, betaNoticeHere, betaNoticeShown, closeBetaNotice, openBetaNotice } from './uiBeta';
 import { showHelp } from '../../../src/ui/menus';
-import {
-  BUG_REPORT_CANARY, BUG_REPORT_COVER_CANARY, bugReportChecked, bugReportPictures, closeBugReportState, openBugReport, openBugReportTouch,
-  useReportService,
-} from './uiBugReport';
+import { BUG_REPORT_CANARY, BUG_REPORT_COVER_CANARY, PANEL_LINKS_CANARY } from './uiReportCanaries';
 import { closeCoopDialog, COOP_CANARY, coopShown, openCoopPicked, openCoopRename, openCoopTouch } from './uiCoop';
 import {
   closeLitTouch, closeSheetTouch, litTouchPictures, litTouchShown, openLitTouch, openSheetTouch, plantLitCanary,
@@ -89,7 +87,7 @@ const joinFound = (a: { lines: string[]; problems: string[] }, b: { lines: strin
 export type UiState =
   | 'lobby' | 'tooltip' | 'glow' | 'help' | 'saves' | 'heroes' | 'readying' | 'readyingHeroes' | 'clicked' | 'views'
   | 'behindProps' | 'cloudIdentity'
-  | 'logLobby' | 'perfAsk' | 'pauseLobby' | 'betaNotice' | 'coop' | 'coopRename' | 'bugReport'
+  | 'logLobby' | 'perfAsk' | 'pauseLobby' | 'betaNotice' | 'coop' | 'coopRename' | 'bugReport' | 'panelLinks'
   | 'villageMap' | 'villageHud' | 'villageHudTouch'
   | 'heroesWarming' | 'skillTipsTouch' | 'sheetTouch' | 'litTouch' | 'buttonsTouch' | 'coopTouch' | 'autoFull'
   | 'run' | 'scores' | 'perf' | 'perfMini' | 'perfGraph' | 'perfParty'
@@ -994,6 +992,25 @@ async function labelsBehindProps(canary: boolean, lab: Lab): Promise<Found> {
   return { lines, problems };
 }
 
+/** The bug report states' module and the panel links', loaded as their states run (`uiReportCanaries.ts`: an A/B
+ *  against a commit from before the bug report stopped every state loading there). */
+const bugReportModule = () => import('./uiBugReport');
+const panelLinksModule = () => import('./uiPanelLinks');
+
+/** A bug report state's steps, from its module as it runs. */
+function bugReportSteps(state: 'bugReport' | 'bugReportTouch'): Steps {
+  return {
+    open: async (lab) => {
+      const module = await bugReportModule();
+      const open = state === 'bugReport' ? module.openBugReport : module.openBugReportTouch;
+      await open(lab, canaryAsked);
+    },
+    close: async () => (await bugReportModule()).closeBugReportState(),
+    check: async (canary, lab) => (await bugReportModule()).bugReportChecked(state, lab, canary),
+    pictures: async () => (await bugReportModule()).bugReportPictures(),
+  };
+}
+
 /** How each state is opened and closed. */
 const STEPS: Record<UiState, Steps> = {
   lobby: { open: () => undefined, close: () => undefined },
@@ -1015,11 +1032,13 @@ const STEPS: Record<UiState, Steps> = {
   perfAsk: { open: openPerfAsk, close: closePerfAsk, check: (canary) => perfAskShown('perfAsk', canary) },
   coop: { open: openCoopPicked, close: closeCoopDialog, check: (canary) => coopShown('coop', canary) },
   coopRename: { open: openCoopRename, close: closeCoopDialog, check: (canary) => coopShown('coopRename', canary) },
-  bugReport: {
-    open: (lab) => openBugReport(lab, canaryAsked), close: closeBugReportState,
-    check: (canary, lab) => bugReportChecked('bugReport', lab, canary), pictures: async () => bugReportPictures(),
-  },
+  bugReport: bugReportSteps('bugReport'),
   pauseLobby: { open: openPauseLobby, close: closePauseLobby, check: hourShown },
+  panelLinks: {
+    open: async () => (await panelLinksModule()).openPanelLinks(canaryAsked),
+    close: async () => (await panelLinksModule()).closePanelLinks(),
+    check: async () => (await panelLinksModule()).panelLinksShown(),
+  },
   betaNotice: { open: openBetaNotice, close: closeBetaNotice, check: betaNoticeShown },
   skillTipsTouch: { open: openSkillTipsTouch, close: closeSkillTipsTouch, check: skillTipsShown },
   villageHud: { open: (lab) => openVillageHud(lab, false), close: closeVillageHud, check: villageHudShown },
@@ -1082,10 +1101,7 @@ const STEPS: Record<UiState, Steps> = {
   decisionTouch: { open: openDecisionTouch, close: closeDecisionTouch, check: decisionTouchShown },
   perfAskTouch: { open: openPerfAskTouch, close: closePerfAsk, check: (canary) => perfAskShown('perfAskTouch', canary) },
   buttonsRunTouch: { open: openButtonsTouch, close: () => undefined, check: runButtonsShown },
-  bugReportTouch: {
-    open: (lab) => openBugReportTouch(lab, canaryAsked), close: closeBugReportState,
-    check: (canary, lab) => bugReportChecked('bugReportTouch', lab, canary), pictures: async () => bugReportPictures(),
-  },
+  bugReportTouch: bugReportSteps('bugReportTouch'),
 };
 
 /** whether this page's run is set up for the run's states (each command's page is booted for it: false at first) */
@@ -1108,7 +1124,7 @@ export async function ui(lab: Lab, options: UiOptions): Promise<Report> {
   tallTips = !!options.canary;
   canaryAsked = !!options.canary;
   plantLitCanary(!!options.canary);
-  useReportService(options.reports);
+  if (state === 'bugReport' || state === 'bugReportTouch') (await bugReportModule()).useReportService(options.reports);
   await steps.open(lab);
   const pictured = await pictureState(lab, state, steps.held ?? {});
   const found = (await steps.check?.(!!options.canary, lab)) ?? { lines: [], problems: [] };
@@ -1221,6 +1237,11 @@ export async function ui(lab: Lab, options: UiOptions): Promise<Report> {
     const caught = found.problems.some((problem) => problem.includes(SUMMARY_CANARY.name));
     lines.push(`  canary: ${SUMMARY_CANARY.what} ${caught ? 'caught' : 'went unseen'}`);
     if (!caught) missed.push(`${state}: the canary's ${SUMMARY_CANARY.what} went unseen`);
+  }
+  if (state === 'panelLinks' && !VILLAGE) {
+    const caught = found.problems.some((problem) => problem.includes(PANEL_LINKS_CANARY.name));
+    lines.push(`  canary: ${PANEL_LINKS_CANARY.what} ${caught ? 'caught' : 'went unseen'}`);
+    if (!caught) missed.push(`${state}: the canary's ${PANEL_LINKS_CANARY.what} went unseen`);
   }
   if (state === 'pauseLobby') {
     const caught = found.problems.some((problem) => problem.includes(HOUR_CANARY.name));

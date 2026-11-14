@@ -17,6 +17,7 @@
 // state's form, found too; and the report's picture taken out on its way to the service, which the node side's
 // read-back must find.
 import { middleOf, realWait } from './lab';
+import { BUG_REPORT_CANARY, BUG_REPORT_COVER_CANARY } from './uiReportCanaries';
 import type { Lab, Pictured } from './lab';
 import { G } from '../../../src/state';
 import { BUG_REPORT, REPORT_KINDS } from '../../../src/data/bugReport';
@@ -34,11 +35,6 @@ export interface BugReportFound {
 
 type State = 'bugReport' | 'bugReportTouch';
 
-/** the problem the box's canary must raise */
-export const BUG_REPORT_CANARY = { name: 'reaches past the window', what: 'the form twice the window\'s height' };
-/** the problem the touch state's canary must raise: something of the page laid over the form (the beta's notice
- *  lay over its title on a phone held sideways, unseen by the controls' own checks) */
-export const BUG_REPORT_COVER_CANARY = { name: 'lies over the form', what: 'a panel laid over the form\'s middle' };
 /** the planted panel's id */
 const COVER_ID = 'lab-bug-report-cover';
 /** the points across the form's box looked at for what lies over it, this far apart (css px): a grid of 8 a side
