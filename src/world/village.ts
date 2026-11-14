@@ -42,6 +42,7 @@ import {
 } from './hoardPieces';
 import { growTree, type TreeKind, thinnedLeaves } from './ezTrees';
 import { TREE_KINDS } from './forest';
+import { simpleTree } from './simpleTrees';
 import { leafClusterTexture } from './foliage';
 import { cullInCells, eachInstance, gridCell } from './culling';
 import { buildFountain, type FountainLight } from './fountain';
@@ -2699,11 +2700,15 @@ function buildTrees(scene: THREE.Object3D, wall: Wall, obstacles: Obstacle[], sp
     });
     barks.castShadow = barks.receiveShadow = true;
     barks.name = `village trees' bark: ${TREE_KINDS[VILLAGE_KINDS[k]].preset}`;
-    scene.add(...asTree(...cullInCells(barks, eachInstance)));
+    const drawnBark = cullInCells(barks, eachInstance), drawnCrowns: THREE.Mesh[][] = [];
+    scene.add(...asTree(...drawnBark));
     for (const { mesh, name } of crowns) {
       mesh.castShadow = mesh.receiveShadow = true;
       mesh.name = `village trees' leaves ${name}: ${TREE_KINDS[VILLAGE_KINDS[k]].preset}`;
-      scene.add(...asTree(...cullInCells(mesh, eachInstance)));
+      const drawn = cullInCells(mesh, eachInstance);
+      scene.add(...asTree(...drawn));
+      drawnCrowns.push(drawn);
     }
+    simpleTree(kind, drawnBark, ...drawnCrowns);
   });
 }

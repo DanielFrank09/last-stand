@@ -17,6 +17,8 @@ export interface TreeKind {
   trunkFoot: number;
   /** how far it reaches from the trunk, over its height, in each of REACH_BANDS bands of height from its foot */
   reach: number[];
+  /** each branch's rings among the bark's vertices, and its level from the trunk (`simpleBark` in simpleTrees.ts) */
+  branches: Branch[];
 }
 export const REACH_BANDS = 10;
 
@@ -54,6 +56,8 @@ const LIMB_MOST = 0.85;
 /** a branch as ez-tree grows it among the bark's vertices: its first, how many rings it has, how many vertices each
  *  (its segments and the first again, at u = 1) */
 interface Rings { from: number; rings: number; round: number }
+/** a branch's rings and its level, 0 the trunk */
+export interface Branch extends Rings { level: number }
 
 /**
  * The bark's v laid down each branch by its girth: a tile as long as the branch is round where it is, its u one tile
@@ -155,12 +159,12 @@ function growAfresh(g: Grow): TreeKind {
   json.leaves.count = Math.max(1, Math.round(json.leaves.count * g.leaves));
   json.leaves.size *= (g.leafSize ?? 1) / Math.sqrt(g.leaves);
   const tree = new Tree();
-  const branches: Rings[] = [];
+  const branches: Branch[] = [];
   const grow = tree.generateBranch.bind(tree);
   tree.generateBranch = (branch) => {
     const from = tree.branches.verts.length / 3;
     grow(branch);
-    branches.push({ from, rings: branch.sectionCount + 1, round: branch.segmentCount + 1 });
+    branches.push({ from, rings: branch.sectionCount + 1, round: branch.segmentCount + 1, level: branch.level });
   };
   tree.loadFromJson(json as never);
   const bark = tree.branchesMesh.geometry, leaves = tree.leavesMesh.geometry;
@@ -177,7 +181,7 @@ function growAfresh(g: Grow): TreeKind {
       reach[b] = Math.max(reach[b], Math.hypot(p.getX(i), p.getZ(i)));
     }
   }
-  return { bark, leaves, trunk: trunkOf(bark, branches[0]), trunkFoot: footOf(bark, branches[0]), reach };
+  return { bark, leaves, trunk: trunkOf(bark, branches[0]), trunkFoot: footOf(bark, branches[0]), reach, branches };
 }
 
 /** A leaf card's four corners and two triangles. */
