@@ -22,6 +22,37 @@ export interface TraceList {
   total: number;
 }
 
+/** A bug report's line in its list (reports.mjs `list`): what happened cut to 200 characters. */
+export interface ReportLine {
+  code: string;
+  at: string;
+  kind: string;
+  text: string;
+  picture: boolean;
+  bytes: number;
+}
+
+/** A page of the reports, newest first, how many in all and their disk's use. */
+export interface ReportList {
+  reports: ReportLine[];
+  total: number;
+  diskBytes: number;
+  diskMax: number;
+  keepDays: number;
+}
+
+/** A report whole (reports.mjs `whole`). */
+export interface Report {
+  code: string;
+  at: string;
+  kind: string;
+  text: string;
+  expected: string;
+  facts: string[];
+  picture: boolean;
+  pictureBytes: number;
+}
+
 /** What's kept, in sum. */
 export interface Summary {
   count: number;

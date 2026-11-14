@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<!-- The traces page (served at GET /traces to a signed-in browser): the summary and the list, filled by src/main.ts. -->
+<!-- The traces page (served at GET /traces to a signed-in browser): the summary and the list, then the bug reports,
+     filled by src/main.ts. -->
 <html lang="en">
 <head>
   <meta charset="utf-8">
@@ -13,7 +14,7 @@
     <h1>Last Stand <span>traces</span></h1>
     <p class="sub">
       Performance traces slow games sent, with their player's consent.
-      Read one with <code>npm run lab -- trace CODE</code>.
+      Read one with <code>npm run lab -- trace CODE</code>. <a href="#reports">Bug reports</a> below.
     </p>
 
     <section class="cards" id="cards"></section>
@@ -39,6 +40,20 @@
     </table>
     <p class="empty" id="empty" hidden>No traces.</p>
     <button id="more" hidden>Show more</button>
+
+    <h2 class="section" id="reports">Bug reports</h2>
+    <p class="sub">
+      What players sent from the pause menu's Report a bug. Open one to read it whole, with the facts the game added
+      and its picture. <span id="report-count"></span>
+    </p>
+    <table class="reports">
+      <thead>
+        <tr><th>Code</th><th>When</th><th>Kind</th><th>What happened</th><th>Picture</th></tr>
+      </thead>
+      <tbody id="report-rows"></tbody>
+    </table>
+    <p class="empty" id="reports-empty" hidden>No reports.</p>
+    <button id="reports-more" hidden>Show more</button>
   </main>
 </body>
 </html>

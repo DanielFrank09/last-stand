@@ -1,5 +1,5 @@
 // Reading the service with the session cookie a Dokci link set (traces.mjs).
-import type { Summary, TraceList } from './types';
+import type { Report, ReportList, Summary, TraceList } from './types';
 
 /** The service's JSON at `path`; a lost session reloads the page, which then says to open it from Dokci. */
 async function json<T>(path: string): Promise<T> {
@@ -23,3 +23,15 @@ export function readTraces(offset: number, limit: number, query: string): Promis
 
 /** Where a trace's gzip downloads from. */
 export const traceUrl = (code: string): string => `/traces/${encodeURIComponent(code)}`;
+
+/** A page of the bug reports from `offset`, newest first. */
+export function readReports(offset: number, limit: number): Promise<ReportList> {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  return json<ReportList>(`/traces/reports?${params}`);
+}
+
+/** A bug report whole. */
+export const readReport = (code: string): Promise<Report> => json<Report>(`/traces/reports/${encodeURIComponent(code)}`);
+
+/** Where a bug report's picture is read from. */
+export const reportPictureUrl = (code: string): string => `/traces/reports/${encodeURIComponent(code)}.jpg`;

@@ -43,6 +43,15 @@ button { background: #232834; color: var(--text); border: 1px solid var(--line);
   font: inherit; cursor: pointer; margin-top: 12px; }
 button:hover { border-color: var(--accent); }
 .empty { color: var(--dim); padding: 24px; text-align: center; }
+h2.section { font-size: 18px; margin: 36px 0 4px; font-weight: 600; }
+td.kind { white-space: nowrap; }
+td.happened { width: 100%; overflow-wrap: anywhere; }
+td.happened summary { cursor: pointer; }
+.whole { margin-top: 8px; }
+.whole .said { margin: 0 0 6px; white-space: pre-wrap; }
+.whole .facts { margin: 0 0 8px; padding: 8px 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+  font: 12px/1.4 ui-monospace, Consolas, monospace; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--dim); }
+.whole img { display: block; max-width: 100%; max-height: 420px; border: 1px solid var(--line); border-radius: 6px; }
 .note { max-width: 520px; margin: 18vh auto 0; background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
   padding: 24px 28px; }
 .note h1 { margin-bottom: 10px; }
@@ -65,4 +74,5 @@ button:hover { border-color: var(--accent); }
   td.gpu { max-width: none; grid-column: 1 / -1; }
   td.build, td.dl { grid-column: 1 / -1; }
   td.facts { grid-column: 1 / -1; }
+  td.happened { grid-column: 1 / -1; }
 }

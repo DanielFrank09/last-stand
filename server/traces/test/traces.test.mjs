@@ -177,6 +177,7 @@ test('serves a browser the page, an API client the list', async () => {
   assert.equal(pageR.headers.get('cache-control'), 'no-store', 'the page names the build\'s files: never cached');
   const html = await pageR.text();
   assert.doesNotMatch(html, /<script(?![^>]*\ssrc=)[^>]*>|<style/, 'nothing inline: the CSP allows none');
+  assert.match(html, /id="report-rows"/, 'the page lists the bug reports under the traces');
   // Its script and style: the build's, named by their content's hash, cached for good, without signing in.
   const files = [...html.matchAll(/(?:src|href)="(\/traces\/assets\/[^"]+)"/g)].map((m) => m[1]);
   assert.ok(files.some((f) => /\/index-[\w-]{8}\.js$/.test(f)) && files.some((f) => /-[\w-]{8}\.css$/.test(f)), files.join());
