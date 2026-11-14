@@ -27,7 +27,7 @@ The pause menu's Report a bug form (`src/ui/AGENTS.md`) sends its reports here, 
 | Uploads at once, traces and reports together | 4 | the server | 503, `Retry-After: 5` |
 | From one address in any hour | 5 (`REPORT_PER_HOUR`) | the server, in memory | 429 "too many reports from here", `Retry-After` the seconds till a place frees (exposed to the page): the form says when to try again and keeps the report |
 | From one address in any 24 hours | 20 (`REPORT_PER_DAY`) | the server, in memory | as above |
-| From every address together in any 24 hours | 200 (`REPORT_PER_DAY_ALL`): a flood can't fill the disk with its reports | the server, in memory | 429 "too many reports today", `Retry-After` |
+| From every address together in any 24 hours | 200 (`REPORT_PER_DAY_ALL`): a flood can't fill the disk with its reports | the server, in memory | 429 "too many reports today", `Retry-After`; a report it turns away takes none of its address's own places (both limits are asked before either counts it) |
 | `TRUSTED_ADDRESSES` (Dokci's `LS_TRACES_TRUSTED`) | never held to an address's own limits; still counted in every address's 200 | the server | |
 | A report refused for what it holds | still counts against its address's limits (nobody probes the checks for free) | the server | |
 | Its fields | `kind`, `text`, `expected`, `facts`, `picture` and nothing else (no name tag, no room, no save can ride along) | the server | 400 |

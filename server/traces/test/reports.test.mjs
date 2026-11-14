@@ -5,7 +5,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
-import { KINDS, Limiter, jpegSize } from '../reports.mjs';
+import { KINDS, Limiter, jpegSize, reportsService } from '../reports.mjs';
 
 const ROOT = resolve(import.meta.dirname, '../../..');
 const DATA = join(ROOT, '.tmp', `reports-test-${process.pid}`);
@@ -188,6 +188,23 @@ test('an hour\'s and a day\'s windows free their places as they pass', () => {
   assert.ok(limiter.take('a', at(24.01)).ok);
   limiter.prune(at(60));
   assert.equal(limiter.sent.size, 0);
+});
+
+test('a report every address\'s day turns away takes no place of its sender\'s own', () => {
+  const hour = 3_600_000;
+  const settings = {
+    data: DATA, trusted: new Set(), reportPerHour: 5, reportPerDay: 2, reportPerDayAll: 3,
+    reportMostText: 1200, reportMostExpected: 400, reportPictureMax: 600 << 10, reportPictureSide: 1280,
+  };
+  const service = reportsService(settings, { log: () => {}, newCode: () => 'ABCD-EFGH' });
+  // (the day's three taken, one of them from `a`; then `a` turned away by every address's day, three times)
+  for (const address of ['a', 'b', 'c']) assert.ok(service.allowed(address, 0).ok);
+  for (let i = 0; i < 3; i++) assert.equal(service.allowed('a', 12 * hour).why, 'too many reports today');
+  // (a day on, every address's day is empty, and `a` has its own day's two places: counted, the refusals held both)
+  const later = 24 * hour + 60_000;
+  assert.ok(service.allowed('a', later).ok);
+  assert.ok(service.allowed('a', later).ok);
+  assert.equal(service.allowed('a', later).why, 'too many reports from here');
 });
 
 test('reads a JPEG\'s size from its markers, and nothing else', () => {

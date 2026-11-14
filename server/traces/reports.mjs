@@ -34,8 +34,9 @@ export function reportLimits(settings) {
 }
 
 /**
- * Counts of what each sender sent within windows of time (`windows`: [ms, most] pairs), kept in memory alone. `take`
- * counts one more if every window has room, else says how long until one has (ms).
+ * Counts of what each sender sent within windows of time (`windows`: [ms, most] pairs), kept in memory alone. `wait`
+ * says how long until every window has room (ms, 0 now), counting nothing; `take` counts one more if they have, else
+ * says how long.
  */
 export class Limiter {
   constructor(windows) {
@@ -44,8 +45,8 @@ export class Limiter {
     this.sent = new Map();
   }
 
-  /** One more from `sender` at `now`, if each window holds fewer than its most: `{ ok }`, else `{ retryMs }`. */
-  take(sender, now = Date.now()) {
+  /** How long until `sender` may send one more at `now` (ms, 0 if it may now), counting nothing. */
+  wait(sender, now = Date.now()) {
     const longest = Math.max(...this.windows.map(([span]) => span));
     const times = (this.sent.get(sender) ?? []).filter((t) => now - t < longest);
     this.sent.set(sender, times);
@@ -55,8 +56,14 @@ export class Limiter {
       // (the window frees a place once the oldest of its last `most` falls out of it)
       if (within.length >= most) retryMs = Math.max(retryMs, within[within.length - most] + span - now);
     }
+    return retryMs;
+  }
+
+  /** One more from `sender` at `now`, if each window holds fewer than its most: `{ ok }`, else `{ retryMs }`. */
+  take(sender, now = Date.now()) {
+    const retryMs = this.wait(sender, now);
     if (retryMs > 0) return { ok: false, retryMs };
-    times.push(now);
+    this.sent.get(sender).push(now);
     return { ok: true };
   }
 
@@ -128,14 +135,17 @@ export function reportsService(settings, { log, newCode }) {
   const fileOf = (code) => join(dir, `${code}.json`);
   const pictureOf = (code) => join(dir, `${code}.jpg`);
 
-  /** Whether `address` may send one more now: `{ ok }`, or `{ retryMs }` and which limit it met. */
+  /** Whether `address` may send one more now: `{ ok }`, or `{ retryMs }` and which limit it met. Both limits are
+   *  asked before either counts it: a report every address's day turned away took a place of its sender's own. */
   function allowed(address, now = Date.now()) {
-    if (!settings.trusted.has(address)) {
-      const own = perAddress.take(address, now);
-      if (!own.ok) return { ...own, why: 'too many reports from here' };
-    }
-    const all = everyone.take('*', now);
-    return all.ok ? all : { ...all, why: 'too many reports today' };
+    const trusted = settings.trusted.has(address);
+    const own = trusted ? 0 : perAddress.wait(address, now);
+    if (own > 0) return { ok: false, retryMs: own, why: 'too many reports from here' };
+    const all = everyone.wait('*', now);
+    if (all > 0) return { ok: false, retryMs: all, why: 'too many reports today' };
+    if (!trusted) perAddress.take(address, now);
+    everyone.take('*', now);
+    return { ok: true };
   }
 
   /** A report taken: kept on the disk and in the index, its code back. */
