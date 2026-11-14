@@ -35,26 +35,37 @@ const STOOD: [number, number] = [2, 3];
 const MOST_CHANGED = 0.002;
 
 /** What a frame drew: the scene's pass (by the game's camera), the sun's map and the point lights' cubes. */
-interface Drawn { scene: number; sun: number; cubes: number; triangles: number }
+export interface Drawn { scene: number; sun: number; cubes: number; triangles: number; faces: number }
 
-/** Every draw of the frames run by `run`, the busiest frame's. */
-async function busiestFrame(lab: Lab, frames: number): Promise<Drawn> {
+/** a frame that drew nothing */
+const nothingDrawn = (): Drawn => ({ scene: 0, sun: 0, cubes: 0, triangles: 0, faces: 0 });
+
+/** Every draw of `frames` frames, the busiest frame's; `faces`: the cube faces it drew into, and into `all` each
+ *  frame's. */
+export async function busiestFrame(lab: Lab, frames: number, all: Drawn[] = []): Promise<Drawn> {
   const gl = G.renderer;
   const own = gl.renderBufferDirect.bind(gl);
-  let now: Drawn = { scene: 0, sun: 0, cubes: 0, triangles: 0 };
+  let now = nothingDrawn();
+  let faces = new Set<string>();
   gl.renderBufferDirect = (camera, scene, geometry, material, object, group) => {
     if (scene === G.scene && camera === G.camera) now.scene++;
     else if ((camera as THREE.OrthographicCamera).isOrthographicCamera) now.sun++;
-    else if (!(scene as THREE.Scene | null)?.isScene) now.cubes++;
+    else if (!(scene as THREE.Scene | null)?.isScene) {
+      now.cubes++;
+      faces.add(`${gl.getRenderTarget()?.texture.id ?? 0}:${gl.getActiveCubeFace()}`);
+    }
     own(camera, scene, geometry, material, object, group);
   };
   let busiest = now;
   try {
     for (let f = 0; f < frames; f++) {
-      now = { scene: 0, sun: 0, cubes: 0, triangles: 0 };
+      now = nothingDrawn();
+      faces = new Set();
       const before = gl.info.render.triangles;
       await lab.step(1);
       now.triangles = gl.info.render.triangles - before;
+      now.faces = faces.size;
+      all.push(now);
       if (now.scene + now.sun + now.cubes > busiest.scene + busiest.sun + busiest.cubes) busiest = now;
     }
   } finally {
@@ -67,7 +78,7 @@ const said = (drawn: Drawn): string => `${drawn.scene} draws in the scene, ${dra
   + `${drawn.cubes} in the lights' cubes, ${Math.round(drawn.triangles / 1000)}k triangles`;
 
 /** The hero stood at `spot`. */
-function standAt([x, z]: [number, number]): void {
+export function standAt([x, z]: [number, number]): void {
   G.player.walkTo = null;
   G.player.place(new THREE.Vector3(x, groundHeight(x, z), z), Math.PI);
 }
@@ -76,7 +87,7 @@ function standAt([x, z]: [number, number]): void {
  * The frame now, the kept maps as the still draws left them, against the frame with every one drawn again: the share
  * that changed, at one moment (no frame runs between: the grass and the water move).
  */
-function leftAgainstDrawnAgain(lab: Lab): number {
+export function leftAgainstDrawnAgain(lab: Lab): number {
   const left = drawFrame(lab);
   drawLampShadows();
   G.arena.update(0, G.time);

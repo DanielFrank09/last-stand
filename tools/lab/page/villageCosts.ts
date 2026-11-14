@@ -33,6 +33,8 @@ export const VILLAGE_COSTS: Readonly<Record<string, number>> = {
   hallCulledByDoor: 1,
   sunShadowKept: 1,
   sunStepDrawsItsMap: 2,
+  lampHandOverByFaces: 2,
+  heroesStandInPieces: 3,
   heroLeftStands: 15,
   cancelledOnHisFloor: 4,
   hallShownAtOnce: 4,

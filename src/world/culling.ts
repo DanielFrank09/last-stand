@@ -387,9 +387,12 @@ function isUnder(object: THREE.Object3D, root: THREE.Object3D): boolean {
   return false;
 }
 
-/** Which of the still shadows a still draw draws again: the point lights' cubes (the braziers', the lamps'), the sun's
- *  map where it's kept. */
-export interface StillDrawn { lights: boolean; sun: boolean }
+/** Which of the still shadows a still draw draws again: the point lights' cubes (the braziers', the lamps': all of
+ *  them, none, or these lights' alone), the sun's map where it's kept; `face`: one face of those lights' cubes alone
+ *  (0 to 5: a lamp's cube drawn a face a frame, `drawLampShadows` in `props.ts`). */
+export interface StillDrawn { lights: boolean | readonly THREE.PointLight[]; sun: boolean; face?: number }
+/** the last face of a cube */
+const LAST_FACE = 5;
 /** every still shadow */
 export const ALL_STILL: StillDrawn = { lights: true, sun: true };
 /** what the still draw under way draws again */
@@ -412,6 +415,21 @@ export function drawingStill(biome: THREE.Object3D, draw: () => void, drawn: Sti
 /** Which still shadows the still draw under way draws again (`drawingStill`): a map it left alone still holds what
  *  moves as the last frame drew it over it, and is no still map to keep. */
 export const stillBeingDrawn = (): StillDrawn => stillDrawn;
+
+/** Whether the still draw under way changes a map the frames read: all but a face of a cube not yet whole, whose
+ *  light gives nothing until its last face is drawn. */
+export function stillChangesKeptMaps(): boolean {
+  const { lights, sun, face } = stillDrawn;
+  return sun || typeof lights === 'boolean' || face === undefined || face === LAST_FACE;
+}
+
+/** Whether the still draw under way leaves `light`'s cube whole and still, to be kept: it draws it, and all of it or
+ *  the last of its faces. */
+export function stillDrawsWhole(light: THREE.PointLight): boolean {
+  const { lights, face } = stillDrawn;
+  if (typeof lights === 'boolean') return lights;
+  return lights.includes(light) && (face === undefined || face === LAST_FACE);
+}
 
 /** Whether a biome's still shadows are being drawn (`drawingStill`). */
 export const isDrawingStill = (): boolean => stillOf !== null;

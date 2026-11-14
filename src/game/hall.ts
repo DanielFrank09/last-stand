@@ -22,7 +22,7 @@ import { hallSpot } from '../world/heroHall';
 import { heroDetail } from '../entities/models/armor';
 import { applyShadowDetail, qualityLevel } from '../core/quality';
 import type { Profile } from '../types';
-import { buildLater, finishNow, finishInSlices, queued } from './behind';
+import { buildFirst, buildLater, finishNow, finishInSlices, queued } from './behind';
 import { heroShare, warmingRuns } from './warm';
 import { preloadHeads } from '../entities/models/head';
 import { builtInSlices } from '../entities/models/steps';
@@ -235,7 +235,7 @@ export function standHeroes(on: boolean, dt: number, still = false): void {
   if (standing.length > want.length || standing.some((p, i) => p.cls.id !== want[i])) {
     standDown();
   }
-  if (standing.length < want.length) {
+  if (standing.length < want.length && builtToStand(want[standing.length], dt)) {
     const id = want[standing.length], i = CLASS_IDS.indexOf(id);
     const player = heroIn(id, profileOf(id));
     const at = new THREE.Vector3(TERRACE.x + HALL.plinths[i], 0, HALL.plinthZ);
@@ -267,6 +267,31 @@ export function standHeroes(on: boolean, dt: number, still = false): void {
     waited.set(p, 0);
   }
   for (const p of standing) haloRound(p, dt);
+}
+
+/** how long a hero wanted on his plinth has waited for his build behind the lobby (s), and the longest he waits
+ *  before he's finished at once (nothing building behind the lobby: a warm-up under way) */
+let awaited = 0;
+const AWAITED_MOST = 5;
+
+/**
+ * Whether class `id`'s hall hero is built to stand on his plinth now. One still being built behind the lobby is built
+ * next, a piece a frame, his plinth empty for those frames: finished at once as the doorway came in sight, the rest of
+ * his build was one frame of 47 ms on a 4070 Ti (trace 0BAM-GTXN), 100 to 200 ms on a phone (PFQA-FY0M) and 110 ms in
+ * the lab's first frame in the village (from play, "FPS is not stable, even on high end hardware").
+ */
+function builtToStand(id: string, dt: number): boolean {
+  if (kept.has(id)) {
+    awaited = 0;
+    return true;
+  }
+  queueHallBehind();
+  if (awaited < AWAITED_MOST && buildFirst(`hall ${id}`)) {
+    awaited += dt;
+    return false;
+  }
+  awaited = 0;
+  return true;
 }
 
 /** the time each standing hero has waited since he was last posed, and whose turn it is (`standHeroes`) */

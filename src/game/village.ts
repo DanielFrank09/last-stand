@@ -33,7 +33,7 @@ import { flash, release, type LightSlot } from '../fx/lights';
 import { lampReachBy, lampsOut, lightLamp, placeLamps, type LampPlace } from '../core/lamps';
 import { RUNNING } from '../core/rendererChoice';
 import { bakeLampShadows } from '../world/lampAtlas';
-import { drawLampShadows, lampShadow } from '../world/props';
+import { drawLampShadows, lampShadow, lampShadowReady } from '../world/props';
 
 export interface VillageHooks {
   /** `object` used: its panel, its card or its screen opened */
@@ -1003,7 +1003,8 @@ function castOnNearest(near: number[], dt: number): void {
   for (const [k, c] of casters.entries()) {
     const shadow = lampLights[k].light.shadow;
     const wanted = c.lamp >= 0 && near.includes(c.lamp);
-    if (wanted) c.share = Math.min(1, c.share + dt * SHADOW_FADE);
+    // (not before its cube is whole there: drawn a face a frame, `drawLampShadows`)
+    if (wanted) c.share = lampShadowReady(lampLights[k].light) ? Math.min(1, c.share + dt * SHADOW_FADE) : 0;
     else c.share = Math.max(0, c.share - dt * SHADOW_FADE);
     if (!wanted && c.share === 0) c.lamp = -1;
     shadow.intensity = 1;
@@ -1014,8 +1015,8 @@ function castOnNearest(near: number[], dt: number): void {
     if (!free) break;
     free.lamp = lamp;
     free.share = 0;
-    // (placed on it as the lights are, below, before its shadow is drawn there with the frame's still ones)
-    drawLampShadows();
+    // (placed on it as the lights are, below, before its shadow is drawn there, a face of its cube a frame)
+    drawLampShadows(lampLights[casters.indexOf(free)].light);
   }
 }
 

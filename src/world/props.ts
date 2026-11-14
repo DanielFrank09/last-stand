@@ -120,6 +120,10 @@ export function standStill(object: THREE.Object3D): void {
  *  asked to be drawn again (`drawLampShadows`) */
 const lampShadows = new Set<THREE.PointLight>();
 let lampsAsked = 0;
+/** the lamp lights whose cubes are being drawn a face a frame (`drawLampShadows`), and the next face of each */
+const lampFaces = new Map<THREE.PointLight, number>();
+/** the faces of a cube */
+const CUBE_FACES = 6;
 
 /**
  * `light`, a pooled light lit at a lamp the hero walks past (the village's, `game/village.ts`), casting the still
@@ -131,6 +135,7 @@ export function lampShadow(light: THREE.PointLight, on: boolean): void {
   light.castShadow = on;
   if (!on) {
     lampShadows.delete(light);
+    lampFaces.delete(light);
     light.shadow.intensity = 1;
     return;
   }
@@ -151,9 +156,32 @@ export function movesInShadows(group: THREE.Object3D): void {
 }
 /** What moves that isn't a body, drawn over the kept shadow maps (`movesInShadows`). */
 export const shadowMovers = (): readonly THREE.Object3D[] => movers;
-/** The lamps' still shadows asked to be drawn again (one moved to another lamp), with the next frame's still ones. */
-export function drawLampShadows(): void {
-  lampsAsked++;
+/**
+ * The lamps' still shadows asked to be drawn again, with the next frame's still ones; or `light`'s alone, moved to
+ * another lamp, a face of its cube a frame over the next six (`nextLampFace`), ready once the last is drawn
+ * (`lampShadowReady`: it lights nothing until then, `castOnNearest` in `game/village.ts`). Drawn at once, a hand-over
+ * was both lamps' twelve faces of the village in one frame, 142 to 167 draws and 3.5M triangles on Very low, at every
+ * lamp he walked past by night (#593; from play, "FPS is not stable, even on high end hardware").
+ */
+export function drawLampShadows(light?: THREE.PointLight): void {
+  // (WebGPU keeps no cube and draws no face alone)
+  if (light && !WEBGPU) lampFaces.set(light, 0);
+  else lampsAsked++;
+}
+
+/** Whether `light`'s cube is whole at the lamp it stands at, not being drawn a face a frame. */
+export const lampShadowReady = (light: THREE.PointLight): boolean => !lampFaces.has(light);
+
+/** The next face of a lamp's cube to draw, of those being drawn a face a frame, or null. */
+export function nextLampFace(): { light: THREE.PointLight; face: number } | null {
+  for (const [light, face] of lampFaces) return { light, face };
+  return null;
+}
+
+/** `face` of `light`'s cube drawn: on to its next, or ready. */
+export function lampFaceDrawn(light: THREE.PointLight, face: number): void {
+  if (face + 1 < CUBE_FACES) lampFaces.set(light, face + 1);
+  else lampFaces.delete(light);
 }
 
 /** The pooled lights casting the lamps' still shadows now (`lampShadow`). */
@@ -203,9 +231,11 @@ function hideBodies(parent: THREE.Object3D, shown: THREE.Object3D, hidden: THREE
  */
 export function drawStillShadows(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera,
   shown: THREE.Group, kept: THREE.LightShadow, drawn: StillDrawn = ALL_STILL): void {
-  const lights = drawn.lights
+  const lights = drawn.lights === true
     ? [...stillShadows].filter((light) => shown.getObjectById(light.id)).concat([...lampShadows])
-    : [];
+    : drawn.lights || [];
+  // (every cube drawn whole here: none is left a face at a time)
+  if (drawn.lights === true) lampFaces.clear();
   const sunToo = drawn.sun && (!kept.autoUpdate || sunStill);
   if (!lights.length && !sunToo) return;
   // (on WebGPU the scene pass's own target, which the frame draws over: a pipeline is made for its target's format
@@ -231,16 +261,27 @@ export function drawStillShadows(renderer: THREE.WebGLRenderer, scene: THREE.Sce
   renderer.setRenderTarget(into);
   // (the shadow maps alone: three draws them only within a render of the scene, and that render's own draws, into a
   // pixel, were the scene's every draw a second time in the frame, 140 to 450 of them, each three's work for a draw)
+  // (and of a cube drawn a face a frame, that face alone: three's pass goes through all six, the others neither
+  // cleared nor drawn into)
+  const offFace = (): boolean => drawn.face !== undefined && renderer.getActiveCubeFace() !== drawn.face
+    && lights.some((light) => light.shadow.map === renderer.getRenderTarget());
   const drawScene = renderer.renderBufferDirect;
+  const clear = renderer.clear;
   if (!WEBGPU) {
     renderer.renderBufferDirect = (by, of, ...rest) => {
-      if (of !== scene) drawScene.call(renderer, by, of, ...rest);
+      if (of !== scene && !offFace()) drawScene.call(renderer, by, of, ...rest);
+    };
+    renderer.clear = (...buffers) => {
+      if (!offFace()) clear.apply(renderer, buffers);
     };
   }
   try {
     drawingStill(shown, () => pipelinesAtOnce(() => renderer.render(scene, camera)), drawn);
   } finally {
-    if (!WEBGPU) renderer.renderBufferDirect = drawScene;
+    if (!WEBGPU) {
+      renderer.renderBufferDirect = drawScene;
+      renderer.clear = clear;
+    }
     renderer.setRenderTarget(target);
     kept.autoUpdate = keptAuto;
     for (const child of hidden) child.visible = true;
