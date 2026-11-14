@@ -163,7 +163,7 @@ test('the charge\'s sets apart from the skills cast with it, those cast with a s
   const jobs = jobsOf({ commands: ['rush'], classes: ['warrior', 'mage'] });
   assert.deepEqual(names(jobs), ['rush-warrior-sets', 'rush-warrior-shield-casts', 'rush-warrior-dual-casts']);
   const [sets, shield, dual] = jobs;
-  assert.deepEqual(sets.options.scenarios, ['sets']);
+  assert.deepEqual(sets.options.scenarios, ['sets', 'bonus']);
   assert.equal(sets.options.gear, undefined);
   assert.deepEqual(shield.options.scenarios, ['casts']);
   assert.equal(shield.options.gear, 'shield');

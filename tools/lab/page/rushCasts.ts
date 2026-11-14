@@ -14,12 +14,13 @@ import * as THREE from 'three';
 import type { Lab, Pictured } from './lab';
 import type { Enemy } from '../../../src/entities/enemy';
 import type { DashOpts, Player } from '../../../src/entities/player';
-import type { ActionState, SkillKey } from '../../../src/types';
+import type { ActionState, SkillDef, SkillKey } from '../../../src/types';
 import { G } from '../../../src/state';
 import * as renderer from '../../../src/core/renderer';
 import { bindKnown, holdingAll, skillNamed } from './cast';
 import { foeKind } from './death';
 import { fixtureOf, waysOf, type RushOptions } from './rush';
+import { heftOf, loadOf, paceOf } from '../../../src/combat/ram';
 
 /** What the canary plants in a cast: the skill hidden behind the charge as both run, the charge's legs dropped from
  *  under it (the legs left to step as he walks), its blows made harmless (the foes kept from harm as its dash steps),
@@ -120,7 +121,7 @@ const AIM_AHEAD = 9;
  *  them (m): under a skill's crouch the knees bend to keep the feet on the floor, up to 12 cm off; a stride frozen
  *  by the pose's fade as a skill began or ended left a foot 39 to 45 cm off */
 const STRIDE_OFF = 0.2;
-/** the charge covering less than this share of its range fell short */
+/** the charge covering less than this share of its range (slowed by all it could carry) fell short */
 const COVERS = 0.95;
 
 const metres = (value: number): string => `${value.toFixed(2)} m`;
@@ -322,6 +323,16 @@ function hookOn(hero: Player, cast: Cast, watch: Watch, foes: Enemy[], canary: b
   };
 }
 
+/** How far the charge goes at the least carrying all of `foes` from its start (m): its range at the pace its whole
+ *  load leaves it (#397: each foe carried slows it). */
+function reachWith(charge: SkillDef, foes: Enemy[]): number {
+  const range = charge.range ?? 0;
+  if (!charge.push || !charge.ram) return range;
+  const ram = charge.ram;
+  const weight = foes.filter((foe) => !foe.def.dummy).reduce((sum, foe) => sum + heftOf(ram, foe, false), 0);
+  return range * paceOf(charge.push, loadOf(charge.push, weight, G.player.stats.damagePct));
+}
+
 /** `combo` cast on a fresh set-up, followed until its skills and the charge are done. */
 async function castWith(lab: Lab, options: RushOptions, combo: Combo): Promise<Cast> {
   G.arena.restoreProps();
@@ -339,7 +350,7 @@ async function castWith(lab: Lab, options: RushOptions, combo: Combo): Promise<C
   const aim = () => hero.pos.clone().addScaledVector(forward, AIM_AHEAD);
   const cast: Cast = {
     combo, skills, runFrom: -1, runTo: -1, runFrames: 0, heldIn: 0, together: 0, hidden: 0, strides: new Map(),
-    covered: 0, range: charge.range ?? 0, planted: false, moment: null,
+    covered: 0, range: reachWith(charge, foes), planted: false, moment: null,
   };
   const watch: Watch = { frame: 0, striking: null, shown: null };
   // (the hooks go with the next set-up's hero, the foes with the next set-up)

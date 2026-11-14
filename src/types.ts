@@ -128,6 +128,10 @@ export interface SkillDef {
   amp?: number;
   /** a shot through foes: its damage on each foe it passes through in turn, as a share (the last for every one after) */
   falloff?: number[];
+  /** a charge that rams a crowd is stunned at its stop (Bull Rush, #560): by the weight of the foes it met */
+  ram?: RamDef;
+  /** a charge that carries what it meets is slowed and stopped by its load (Bull Rush, #397) */
+  push?: PushDef;
   /** a drawn shot's extra damage when loosed at full draw, as a share */
   fullBonus?: number;
   /** melee arc in radians */
@@ -147,6 +151,9 @@ export interface SkillDef {
   /** its tuning with the weapons held one way, over its own (a two-hander's slower, heavier blows, two blades' quicker,
    *  lighter ones): `loot/loadout.ts` `forStyle` */
   styles?: Partial<Record<HeldStyle, StyleTuning>>;
+  /** set by a style's tuning: what that way of holding the weapons does to its damage, in a few words, which its
+   *  tooltip adds to what its figures are made of (Bull Rush's shield, #398) */
+  styleNote?: string;
   /** a channel cast with no weapon held from either hand or both (the mage's lance, #402): its damage and its
    *  Energy a second from both hands at once; from one hand its own */
   both?: { damage: number; cost: number };
@@ -192,7 +199,7 @@ export interface HallDef {
 }
 
 /** What a weapon style may change of a skill. */
-export type StyleTuning = Partial<Pick<SkillDef, 'castTime' | 'damage' | 'gain' | 'spin'>>;
+export type StyleTuning = Partial<Pick<SkillDef, 'castTime' | 'damage' | 'gain' | 'spin' | 'styleNote' | 'ram'>>;
 
 export interface ClassDef {
   id: string;
@@ -284,6 +291,23 @@ export type EnemyAIKind = 'melee' | 'ranged' | 'slam' | 'boss' | 'idle';
 export type ThreatKind = 'shot' | 'wave' | 'rush' | 'beam' | 'area';
 
 /**
+ * A charge's stun at its stop, by the weight of the crowd it rammed (`SkillDef.ram`, combat/skills/bullRush.ts): each
+ * foe it met weighs its kind's `heft` (`EnemyDef.heft`, 1 by default), an elite `elite` times that and one the charge
+ * killed `killed` times it. Under `at` of weight nothing; from `at`, `least` s, rising evenly to `most` s at `full` and
+ * held there.
+ */
+export interface RamDef { at: number; full: number; least: number; most: number; elite: number; killed: number }
+
+/**
+ * What a charge's load does to it (`SkillDef.push`, combat/ram.ts `loadOf`): each living foe it carries weighs its
+ * kind's `heft`, an elite `RamDef.elite` times that, and the hero's All Damage % lightens the whole by `gear` of its
+ * share (at +100% and `gear` 0.5, two thirds of it). Each weight carried takes `slow` of the charge's speed, and at
+ * `most` it stops where it is. With nothing carried it goes as far as ever, whatever the gear. A boss is never
+ * carried: it stops the charge.
+ */
+export interface PushDef { most: number; slow: number; gear: number }
+
+/**
  * How a foe gets out of an attack it sees coming, at random, rolled once an attack (entities/evade.ts): it ducks into
  * the ground ('duck': a shot flies over what's left of it, struck only low, at its feet) or blinks to a spot nearby
  * clear of the attack ('blink'). It sees only what comes from a hero within `sees` (rad) either side of its facing.
@@ -361,6 +385,8 @@ export interface EnemyDef {
   boss?: boolean;
   /** training dummy: never dies, meters the damage it takes instead */
   dummy?: boolean;
+  /** the weight it puts up as a hero's charge rams it (`RamDef`): 1 by default, a slammer and a boss more */
+  heft?: number;
   /** how it gets out of an attack it sees coming */
   evade?: EvadeDef;
   /** what it throws at a hero too far off for its slam */

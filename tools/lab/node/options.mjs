@@ -271,8 +271,9 @@ export const COMMANDS = {
       scenarios: {
         kind: 'list',
         usage: 'a,b',
-        choices: ['stand', 'walk', 'shoot', 'reverse', 'taps', 'run', 'cast'],
-        help: 'the scenarios (all by default): stand, walk, shoot, reverse, taps, run, cast (with --skill)',
+        choices: ['stand', 'walk', 'shoot', 'reverse', 'taps', 'run', 'stagger', 'cast'],
+        help: 'the scenarios (all by default): stand, walk, shoot, reverse, taps, run, stagger (stunned 0.7 s as a '
+          + 'charge into a crowd leaves him, his keys held), cast (with --skill)',
       },
       skill: { kind: 'text', usage: 'name', help: 'the cast scenario\'s skill: its key, its behaviour or its name' },
       foe: { kind: 'text', usage: 'kind', help: 'a foe of this kind stood ahead of him for the cast scenario (dummy)' },
@@ -1341,9 +1342,12 @@ export const COMMANDS = {
       scenarios: {
         kind: 'list',
         usage: 'a,b',
-        choices: ['sets', 'casts'],
-        help: 'the parts (both by default): sets (the sets of foes the charge is cast through) and casts (the skills '
-          + 'cast with it, those the weapons held allow)',
+        choices: ['sets', 'casts', 'bonus', 'stun'],
+        help: 'the parts (all by default): sets (the sets of foes the charge is cast through), casts (the skills '
+          + 'cast with it, those the weapons held allow), bonus (its blows with a shield and a lone one-hander, '
+          + 'each within the damage its data gives it held that way, #398) and stun (packs rammed, #397 and #560: a '
+          + 'big one, an elite one, a huge one and a boss, the load carried and how far it went, the stun at the '
+          + 'stop for the time its weight gives, no move or cast meanwhile; a small one and a killed one stun nothing)',
       },
       dummies: {
         kind: 'switch',
@@ -1359,7 +1363,8 @@ export const COMMANDS = {
         kind: 'switch',
         help: 'plant the faults the checks must catch: the first foe thrown put behind the hero as it lands, the '
           + 'charge shown in the strike\'s place as both run, its legs dropped from under the cleave, its blows '
-          + 'made harmless, Steel Tempest let go as it is cast, and the charge cut short as Twin Fangs lands',
+          + 'made harmless, Steel Tempest let go as it is cast, the charge cut short as Twin Fangs lands, and the big '
+          + 'pack\'s stun cut short',
       },
       ...SETUP_OPTIONS,
       ...COMMON_OPTIONS,

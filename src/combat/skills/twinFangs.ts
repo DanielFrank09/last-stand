@@ -18,7 +18,8 @@ const SHORT = 1.3, MAX_LUNGE = 2.2;
 tunable('twinFangs', FANGS);
 
 function strike(player: Player, def: Def, i: number): void {
-  if (!player.alive) return;
+  // (nor stunned: cast late in a Bull Rush that rammed a crowd, a cut fell due after its stop)
+  if (!player.alive || player.stunned) return;
   const facing = player.facing;
   // the right blade cuts down from high on the right, the left one mirrors it, each marked by the trail it leaves
   // alone (fx/swingTrail.ts)

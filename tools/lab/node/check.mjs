@@ -102,12 +102,13 @@ export const EYES_SKILLS = {
   crescent: ['twoHanded'], twinFangs: ['dual'], raiseShield: ['shield'],
 };
 /**
- * Bull Rush's parts in a check, a job each: the sets of foes it sweeps up, and the skills cast with it with a shield
+ * Bull Rush's parts in a check, a job each: the sets of foes it sweeps up (its blows with a shield and without beside
+ * them), and the skills cast with it with a shield
  * and with a weapon in each hand (each way's own among them: the charge cast with the shield raised, Twin Fangs in the
  * charge; with the weapons as rolled, a combo the way they were held left out was never checked)
  */
 export const RUSH_PARTS = [
-  { part: 'sets', options: { scenarios: ['sets'] } },
+  { part: 'sets', options: { scenarios: ['sets', 'bonus'] } },
   { part: 'shield-casts', options: { scenarios: ['casts'], gear: 'shield' } },
   { part: 'dual-casts', options: { scenarios: ['casts'], gear: 'dual' } },
 ];

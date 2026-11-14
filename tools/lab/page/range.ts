@@ -159,6 +159,8 @@ interface RangeLeg {
   /** the skill asked for (`--skill`) cast on its first frame, its key held as long as the player would (`holdFor`: a
    *  channel through, a drawn shot to full), the leg's frames after that */
   cast?: boolean;
+  /** stunned for this long as it starts (s: a Bull Rush that rammed a crowd, #560), reeling in the stagger's pose */
+  stun?: number;
 }
 
 interface RangeScenario {
@@ -206,6 +208,12 @@ const SCENARIOS: RangeScenario[] = [
     name: 'run',
     what: 'running reversals: left and right again',
     legs: [['a'], ['d'], ['a'], ['d']].map((keys) => legOf(keys, false, 40)),
+  },
+  {
+    name: 'stagger',
+    what: 'staggered by a charge into a crowd, walking and attacking held through it, and walking on after it',
+    // (the longest stagger a one-hander's charge gives, 0.7 s, its keys held as a player trying to get away does)
+    legs: [legOf([], false, 20), { ...legOf(['w'], true, 60), stun: 0.7 }, legOf(['w'], false, 40)],
   },
   {
     name: 'cast',
@@ -508,6 +516,7 @@ async function runScenario(
   };
   const press = scenario.legs.some((leg) => leg.cast) ? castPress(lab, options) : null;
   for (const leg of scenario.legs) {
+    if (leg.stun) G.player.stun(leg.stun);
     const held = leg.cast && press ? press.frames : 0;
     const input = (f: number) => (press && f < held ? press.frame : { keys: leg.keys, m0: attackDown(leg, f) });
     await lab.step(leg.frames + Math.max(0, held - 1), input, measure);
