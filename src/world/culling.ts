@@ -387,16 +387,31 @@ function isUnder(object: THREE.Object3D, root: THREE.Object3D): boolean {
   return false;
 }
 
+/** Which of the still shadows a still draw draws again: the point lights' cubes (the braziers', the lamps'), the sun's
+ *  map where it's kept. */
+export interface StillDrawn { lights: boolean; sun: boolean }
+/** every still shadow */
+export const ALL_STILL: StillDrawn = { lights: true, sun: true };
+/** what the still draw under way draws again */
+let stillDrawn: StillDrawn = ALL_STILL;
+
 /** `draw` run as `biome`'s still shadows are drawn (`drawStillShadows` in `props.ts`): the shadow map shows only the
- *  casters it alone draws that stand in the biome, and runs no work round its draw (`aroundShadows`). */
-export function drawingStill(biome: THREE.Object3D, draw: () => void): void {
+ *  casters it alone draws that stand in the biome, and runs no work round its draw (`aroundShadows`); `drawn`: which
+ *  of them it draws again. */
+export function drawingStill(biome: THREE.Object3D, draw: () => void, drawn: StillDrawn = ALL_STILL): void {
   stillOf = biome;
+  stillDrawn = drawn;
   try {
     draw();
   } finally {
     stillOf = null;
+    stillDrawn = ALL_STILL;
   }
 }
+
+/** Which still shadows the still draw under way draws again (`drawingStill`): a map it left alone still holds what
+ *  moves as the last frame drew it over it, and is no still map to keep. */
+export const stillBeingDrawn = (): StillDrawn => stillDrawn;
 
 /** Whether a biome's still shadows are being drawn (`drawingStill`). */
 export const isDrawingStill = (): boolean => stillOf !== null;

@@ -9,7 +9,7 @@ import { WEBGPU, gpu, pipelinesAtOnce, webgpuSceneTarget } from '../core/webgpu'
 import { portShader } from '../core/shaderPorts';
 import { membraneMaterial, spillMaterial } from './portalNodes';
 import { daySkyMaterial, nightSkyMaterial } from './skyNodes';
-import { drawingStill, inShadowsOnly } from './culling';
+import { ALL_STILL, drawingStill, inShadowsOnly, type StillDrawn } from './culling';
 import { bySide, casterMaterial, piecesOf, type Piece } from './breakableShadows';
 import { rand, TAU } from '../util';
 import { valueNoise3 } from '../core/patterns';
@@ -202,9 +202,12 @@ function hideBodies(parent: THREE.Object3D, shown: THREE.Object3D, hidden: THREE
  * by the frame's own render): three's shadow pass reads the render's state, and called alone it threw.
  */
 export function drawStillShadows(renderer: THREE.WebGLRenderer, scene: THREE.Scene, camera: THREE.Camera,
-  shown: THREE.Group, kept: THREE.LightShadow): void {
-  const lights = [...stillShadows].filter((light) => shown.getObjectById(light.id)).concat([...lampShadows]);
-  if (!lights.length && kept.autoUpdate && !sunStill) return;
+  shown: THREE.Group, kept: THREE.LightShadow, drawn: StillDrawn = ALL_STILL): void {
+  const lights = drawn.lights
+    ? [...stillShadows].filter((light) => shown.getObjectById(light.id)).concat([...lampShadows])
+    : [];
+  const sunToo = drawn.sun && (!kept.autoUpdate || sunStill);
+  if (!lights.length && !sunToo) return;
   // (on WebGPU the scene pass's own target, which the frame draws over: a pipeline is made for its target's format
   // and samples, and in a pixel of its own each prop in view had one made at the draw, a breaking prop's frame held
   // up 260 to 300 ms)
@@ -222,14 +225,22 @@ export function drawStillShadows(renderer: THREE.WebGLRenderer, scene: THREE.Sce
   const target = renderer.getRenderTarget();
   for (const light of lights) light.shadow.needsUpdate = true;
   // (held, the moon's is drawn here of what stands still too, and kept: `moonShadow.ts`)
-  if (!keptAuto) kept.needsUpdate = true;
-  kept.autoUpdate = false;
   // (the sun's too where it's the still world's alone: drawn here, the bodies hidden, and by no frame after)
-  if (sunStill) kept.needsUpdate = true;
+  if (sunToo) kept.needsUpdate = true;
+  kept.autoUpdate = false;
   renderer.setRenderTarget(into);
+  // (the shadow maps alone: three draws them only within a render of the scene, and that render's own draws, into a
+  // pixel, were the scene's every draw a second time in the frame, 140 to 450 of them, each three's work for a draw)
+  const drawScene = renderer.renderBufferDirect;
+  if (!WEBGPU) {
+    renderer.renderBufferDirect = (by, of, ...rest) => {
+      if (of !== scene) drawScene.call(renderer, by, of, ...rest);
+    };
+  }
   try {
-    drawingStill(shown, () => pipelinesAtOnce(() => renderer.render(scene, camera)));
+    drawingStill(shown, () => pipelinesAtOnce(() => renderer.render(scene, camera)), drawn);
   } finally {
+    if (!WEBGPU) renderer.renderBufferDirect = drawScene;
     renderer.setRenderTarget(target);
     kept.autoUpdate = keptAuto;
     for (const child of hidden) child.visible = true;
@@ -953,6 +964,44 @@ function mergeUnder(root: THREE.Object3D, kept: boolean): void {
     root.add(one);
     one.updateMatrixWorld(true);
     one.matrixAutoUpdate = false;
+    for (const mesh of meshes) mesh.removeFromParent();
+  }
+}
+
+/**
+ * `parent`'s own plain meshes drawn as one a material, each merge in `parent`'s space, so it moves, turns and is
+ * scaled with it: the parts of a thing that moves as one (the stash's chest was 90 draws, and three's work
+ * for each draw is most of a phone's frame in the village, traces PFQA-FY0M and 02XR-1GKY). A mesh with parts
+ * of its own, or hidden, stays as it is.
+ */
+export function mergeChildren(parent: THREE.Object3D): void {
+  const groups = new Map<string, THREE.Mesh[]>();
+  for (const child of parent.children) {
+    const mesh = child as THREE.Mesh;
+    if (!mesh.isMesh || (mesh as THREE.InstancedMesh).isInstancedMesh || (mesh as THREE.SkinnedMesh).isSkinnedMesh) continue;
+    if (Array.isArray(mesh.material) || mesh.children.length || !mesh.visible) continue;
+    const key = `${mergeKey(mesh)}|${mesh.renderOrder}|${mesh.layers.mask}`;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(mesh);
+  }
+  for (const meshes of groups.values()) {
+    if (meshes.length < 2) continue;
+    const parts = meshes.map((mesh) => {
+      mesh.updateMatrix();
+      return mesh.geometry.clone().applyMatrix4(mesh.matrix);
+    });
+    const merged = mergeGeometries(parts);
+    for (const part of parts) part.dispose();
+    if (!merged) continue;
+    const first = meshes[0];
+    const one = new THREE.Mesh(merged, first.material);
+    one.name = first.name;
+    one.receiveShadow = first.receiveShadow;
+    one.castShadow = first.castShadow;
+    one.renderOrder = first.renderOrder;
+    one.layers.mask = first.layers.mask;
+    Object.assign(one.userData, first.userData);
+    parent.add(one);
     for (const mesh of meshes) mesh.removeFromParent();
   }
 }

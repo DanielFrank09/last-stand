@@ -5,7 +5,7 @@
 // drawn over it, as the lamps' are (`lampShadows.ts`). A fight's foes are most of a biome's map, which redraws as ever.
 import { RUNNING } from '../core/rendererChoice';
 import * as THREE from 'three';
-import { afterShadows } from './culling';
+import { afterShadows, stillBeingDrawn } from './culling';
 import { heroesOnTheirLayer, moversSeen, unbound, type Bounded } from './lampShadows';
 import { G } from '../state';
 
@@ -75,6 +75,8 @@ export function castMoversOverMoon(renderer: THREE.WebGLRenderer, moon: THREE.Di
     const map = moon.shadow.map;
     if (!holding || !map) return;
     if (still) {
+      // (only a map this still draw drew: one it left holds what moves as the last frame drew it over it)
+      if (!stillBeingDrawn().sun) return;
       if (!kept || kept.width !== map.width) {
         kept?.dispose();
         kept = keeperOf(renderer, map as THREE.WebGLRenderTarget);

@@ -34,7 +34,7 @@ import { mulberry, rand, TAU } from '../util';
 import { bannerGeo, buildBrazier } from './crypt';
 import { CLASSES, CLASS_IDS } from '../data/classes/index';
 import { BONFIRE_LIGHT, buildBonfire } from './forest';
-import { asLeaves, asTree, movesInShadows, boxWithUV, contactShadows, setInstance, standStill, type Biome, type BiomeLook, type EnvColours, type Portal, type RGB, type Updater } from './props';
+import { asLeaves, asTree, mergeChildren, movesInShadows, boxWithUV, contactShadows, setInstance, standStill, type Biome, type BiomeLook, type EnvColours, type Portal, type RGB, type Updater } from './props';
 import { buildMeadow, meadowGround, MeadowMask, setMeadowOccluders, type MaskUniforms } from './meadow';
 import {
   barGeometry, chased, CoinBed, coinFaces, coinGeometry, coinsPile, crownGeometry, crownPointAngle, crownPoints, gemGeometry,
@@ -1833,6 +1833,7 @@ function chestHoard(chest: THREE.Object3D, M: Mats, w: number, d: number, h: num
     stone.scale.set(0.26, 0.12, 0.26);
     goblet.add(stone);
   }
+  mergeChildren(goblet);
   // a crown lying tipped on the heap, a stone in its band over each point
   const crown = crownGeometry();
   const crownAt: [number, number] = [0.13, -0.03];
@@ -1847,14 +1848,16 @@ function chestHoard(chest: THREE.Object3D, M: Mats, w: number, d: number, h: num
     stone.scale.set(0.34, 0.16, 0.34);
     crownMesh.add(stone);
   }
+  mergeChildren(crownMesh);
   const crownSkin = heapAt(crownAt[0], crownAt[1]), crownY = bed.topOver(crownAt[0], crownAt[1], crown.size.r) - 0.002;
   // gold bars, two with one across them, sunk a little at the other end
   const bar = barGeometry(), barsSkin = heapAt(0.305, 0.155), barsY = bed.topOver(0.305, 0.155, 0.07) + 0.008;
-  const bars = [[0.3, 0.19, 0, 0.3], [0.31, 0.12, 0, 0.42], [0.305, 0.155, 0.03, 1.8]].map(([x, z, up, turn]) => {
-    const mesh = add(bar, M.gilt, x, 0, z, g);
-    mesh.rotation.y = turn;
-    return { mesh, up };
-  });
+  // (one mesh: they come and rise together)
+  const barsLaid = [[0.3, 0.19, 0, 0.3], [0.31, 0.12, 0, 0.42], [0.305, 0.155, 0.03, 1.8]]
+    .map(([x, z, up, turn]) => bar.clone().rotateY(turn).translate(x, up, z));
+  const bars = add(mergeGeometries(barsLaid)!, M.gilt, 0, 0, 0, g);
+  for (const laid of barsLaid) laid.dispose();
+  bar.dispose();
   const raised = (y: number, full: number): number => CHEST_FLOOR + (y - CHEST_FLOOR) * full;
   g.userData.show = (full: number, open: number): void => {
     g.scale.setScalar(full > 0 ? 1 : NOTHING);
@@ -1890,10 +1893,8 @@ function chestHoard(chest: THREE.Object3D, M: Mats, w: number, d: number, h: num
     goblet.scale.setScalar(full >= 0.7 ? 1.5 : NOTHING);
     crownMesh.position.y = onCoins(crownSkin, crownY);
     crownMesh.scale.setScalar(full >= 0.85 ? 1.3 : NOTHING);
-    for (const { mesh, up } of bars) {
-      mesh.position.y = onCoins(barsSkin, barsY) + up;
-      mesh.scale.setScalar(full >= 0.6 ? 1 : NOTHING);
-    }
+    bars.position.y = onCoins(barsSkin, barsY);
+    bars.scale.setScalar(full >= 0.6 ? 1 : NOTHING);
   };
 }
 
@@ -2002,6 +2003,9 @@ function buildChest(scene: THREE.Object3D, M: Mats, obstacles: Obstacle[]): THRE
   g.add(new THREE.Mesh(mergeGeometries(rivets)!, M.chestIron));
   hinge.add(new THREE.Mesh(mergeGeometries(lidRivets)!, M.chestIron));
   for (const r of [...rivets, ...lidRivets]) r.dispose();
+  // (the box's parts and the lid's each drawn as one a material: a mesh a board, strap and plate it was 90 draws, now 35)
+  mergeChildren(g);
+  mergeChildren(hinge);
   g.traverse((o) => { o.userData.noBake = true; });
   scene.add(g);
   obstacles.push({ x: CHEST.x, z: CHEST.z, r: 0.7, h: h + 0.35 });

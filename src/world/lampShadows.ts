@@ -5,7 +5,7 @@
 // alone drawn into it over what stands still: their dozen draws a face, not the village's.
 import { RUNNING } from '../core/rendererChoice';
 import * as THREE from 'three';
-import { afterShadows, type ShadowDraw } from './culling';
+import { afterShadows, stillBeingDrawn, type ShadowDraw } from './culling';
 import { lampShadowLights } from './props';
 import { HERO_SHADOW_LAYER, WORLD_LAYER } from '../core/layers';
 import { G } from '../state';
@@ -160,7 +160,8 @@ export function castHeroesOverLamps(renderer: THREE.WebGLRenderer): void {
   afterShadows((draw, scene, camera, still) => {
     if (!lampShadowLights().size) return;
     if (still) {
-      keepStill(renderer);
+      // (only cubes this still draw drew: one it left holds the heroes the last frame drew over it)
+      if (stillBeingDrawn().lights) keepStill(renderer);
       return;
     }
     // (the frame's own draw alone: not the arms' through the eyes, nor a warm-up's or a picture's)
