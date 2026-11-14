@@ -64,6 +64,17 @@ body.touch .stow-hint kbd { display: none; }
   .menu-links .link, body.touch .menu-links .link { min-height: 0; padding-block: 4px; line-height: normal; }
   /* (and its sections 7 px apart, as their second row scrolled the panel 21 px at 10) */
   .ml-body { gap: 7px; padding-block: 12px; }
+  /* the duel's menu holds more than a phone's height in one column: its choices beside its sides, its last line
+     and its button under both */
+  #vcard[data-page="pvp"] { width: 720px; }
+  #vcard[data-page="pvp"] .vc-sub { display: none; }
+  .vc-page[data-page="pvp"]:not(.hidden) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 6px 18px; align-items: center; }
+  .vc-page[data-page="pvp"] .pvp-choices { gap: 6px; }
+  /* (a player alone has no sides to show: the choices take the card's width) */
+  .vc-page[data-page="pvp"] .pvp-choices:has(+ #pvp-sides.hidden) { grid-column: 1 / -1; justify-self: center; width: 60%; }
+  .vc-page[data-page="pvp"] :is(#pvp-note, #pvp-go, #pvp-party) { grid-column: 1 / -1; justify-self: center; }
+  .vc-page[data-page="pvp"] #pvp-go { width: auto; font-size: 17px; padding: 8px 30px; }
+  .pvp-side { padding: 5px 8px; gap: 4px; }
   #stash-filter { top: calc(100% + 6px); bottom: auto; }
   #minimap-wrap .mm-title, #minimap-wrap .objectives { display: none; }
   /* the minimap at the corner, a thin line round it in place of the bezel and its dark ring */
