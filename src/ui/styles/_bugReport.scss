@@ -13,9 +13,11 @@
 .br-form.hidden, .br-done.hidden { display: none; }
 .br-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 22px; }
 .br-col { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.br-label { display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+// (scoped to the form: `.br-label` is the lobby's too, its battleground rows' labels in `_lobby.scss`, and they took
+// the form's font, size and colour)
+.br-box .br-label { display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
   font-family: var(--font-display); font-size: 15px; color: var(--accent); }
-.br-label small { font-family: var(--font-body); font-size: 12px; color: var(--ink-dim); font-variant-numeric: lining-nums tabular-nums; }
+.br-box .br-label small { font-family: var(--font-body); font-size: 12px; color: var(--ink-dim); font-variant-numeric: lining-nums tabular-nums; }
 
 // the kinds: one chosen, as a row of radio buttons
 .br-kinds { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
