@@ -70,7 +70,7 @@ import { autoFullChecked, autoFullPictures, ESC_CANARY, FULL_CANARY } from './ui
 import { BETA_NOTICE_CANARY, betaNoticeHere, betaNoticeShown, closeBetaNotice, openBetaNotice } from './uiBeta';
 import { showHelp } from '../../../src/ui/menus';
 import {
-  BUG_REPORT_CANARY, bugReportChecked, bugReportPictures, closeBugReportState, openBugReport, openBugReportTouch,
+  BUG_REPORT_CANARY, BUG_REPORT_COVER_CANARY, bugReportChecked, bugReportPictures, closeBugReportState, openBugReport, openBugReportTouch,
   useReportService,
 } from './uiBugReport';
 import { closeCoopDialog, COOP_CANARY, coopShown, openCoopPicked, openCoopRename, openCoopTouch } from './uiCoop';
@@ -1233,9 +1233,11 @@ export async function ui(lab: Lab, options: UiOptions): Promise<Report> {
     if (!caught) missed.push(`${state}: the canary's ${DECISION_CANARY.what} went unseen`);
   }
   if (state === 'bugReport' || state === 'bugReportTouch') {
-    const caught = found.problems.some((problem) => problem.includes(BUG_REPORT_CANARY.name));
-    lines.push(`  canary: ${BUG_REPORT_CANARY.what} ${caught ? 'caught' : 'went unseen'}`);
-    if (!caught) missed.push(`${state}: the canary's ${BUG_REPORT_CANARY.what} went unseen`);
+    // (the mouse's plants the form's height; the touch state's lays a panel over it)
+    const planted = state === 'bugReport' ? BUG_REPORT_CANARY : BUG_REPORT_COVER_CANARY;
+    const caught = found.problems.some((problem) => problem.includes(planted.name));
+    lines.push(`  canary: ${planted.what} ${caught ? 'caught' : 'went unseen'}`);
+    if (!caught) missed.push(`${state}: the canary's ${planted.what} went unseen`);
   }
   if (state === 'coop' || state === 'coopRename' || state === 'coopTouch') {
     const caught = found.problems.some((problem) => problem.includes(COOP_CANARY.name));

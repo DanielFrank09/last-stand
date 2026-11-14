@@ -712,6 +712,8 @@ let reportAlone = false;
 function openReport() {
   if (bugReportOpen()) return;
   reportAlone = !G.menuOpen;
+  // (a screen over the village puts the beta's notice away; the pause menu under the form holds the frame's check of it)
+  hideBetaNotice();
   if (reportAlone) {
     G.menuOpen = true;
     G.paused = !isCoop();

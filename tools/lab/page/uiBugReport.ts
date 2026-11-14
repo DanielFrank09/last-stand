@@ -11,8 +11,11 @@
 // text 16 css px at least (a phone zooms the page into a smaller one), and the report saying the run and its wave.
 // Nothing leaves for anywhere else: the clipboard is stood in for, a new tab is caught, and every report's POST must go
 // to the lab's own service, or it's turned away here (never production's).
-// Its canaries: the form's box twice the window's height, which must be found here; and the report's picture taken out
-// on its way to the service, which the node side's read-back must find.
+// In the village the beta's notice is up as the menu opens, as in the 20 s after a game opens (its timer runs on the
+// browser's clock, so the lab met it in some runs alone): the form must put it away, and nothing may lie over the form.
+// Its canaries: the form's box twice the window's height, which must be found here; a panel laid over the touch
+// state's form, found too; and the report's picture taken out on its way to the service, which the node side's
+// read-back must find.
 import { middleOf, realWait } from './lab';
 import type { Lab, Pictured } from './lab';
 import { G } from '../../../src/state';
@@ -20,6 +23,7 @@ import { BUG_REPORT, REPORT_KINDS } from '../../../src/data/bugReport';
 import { input } from '../../../src/core/input';
 import { bugReportOpen, bugReportServer, bugReportShot, closeBugReport } from '../../../src/ui/bugReport';
 import { showPause } from '../../../src/ui/menus';
+import { showBetaNotice } from '../../../src/ui/beta';
 import { touchMode } from './uiTouch';
 
 /** What a state found besides its boxes: lines for its report, and its problems. */
@@ -32,6 +36,14 @@ type State = 'bugReport' | 'bugReportTouch';
 
 /** the problem the box's canary must raise */
 export const BUG_REPORT_CANARY = { name: 'reaches past the window', what: 'the form twice the window\'s height' };
+/** the problem the touch state's canary must raise: something of the page laid over the form (the beta's notice
+ *  lay over its title on a phone held sideways, unseen by the controls' own checks) */
+export const BUG_REPORT_COVER_CANARY = { name: 'lies over the form', what: 'a panel laid over the form\'s middle' };
+/** the planted panel's id */
+const COVER_ID = 'lab-bug-report-cover';
+/** the points across the form's box looked at for what lies over it, this far apart (css px): a grid of 8 a side
+ *  passed between the beta's notice's 30 px on a phone held sideways */
+const COVER_STEP = 10;
 
 /** what of the form a player must reach, by its selector and what it's called in a report (each kind besides) */
 const CONTROLS: [string, string][] = [
@@ -168,6 +180,8 @@ async function openForm(lab: Lab, state: State): Promise<void> {
 export async function openBugReport(lab: Lab, canary: boolean): Promise<void> {
   pictures = [];
   standIn();
+  // (the notice up as a game opens: the pause menu leaves it, and on a phone held sideways it lay over the form's title)
+  showBetaNotice();
   showPause(true);
   await lab.step(1);
   pictures.push(await lab.screen('bugReport-entry', ['the pause menu: Report a bug at its foot'], '#pause .pause-box'));
@@ -183,11 +197,27 @@ export async function openBugReportTouch(lab: Lab, canary: boolean): Promise<voi
   showPause(true);
   await lab.step(1);
   await openForm(lab, 'bugReportTouch');
-  if (canary) part('.br-box').style.minHeight = `${2 * innerHeight}px`;
+  if (canary) plantCover();
+}
+
+/** The touch canary's plant: a panel of the page's own laid over the form's middle, as the beta's notice lay. */
+function plantCover(): void {
+  const cover = document.createElement('div');
+  cover.id = COVER_ID;
+  const style = cover.style;
+  style.position = 'fixed';
+  style.left = '35%';
+  style.top = '45%';
+  style.width = '30%';
+  style.height = '10%';
+  style.zIndex = '101';
+  style.background = '#802020';
+  document.body.appendChild(cover);
 }
 
 export function closeBugReportState(): void {
   part('.br-box').style.minHeight = '';
+  document.getElementById(COVER_ID)?.remove();
   part<HTMLTextAreaElement>('#br-text').value = '';
   part<HTMLInputElement>('#br-expected').value = '';
   closeBugReport();
@@ -212,6 +242,34 @@ function reachable(element: HTMLElement | null, name: string, state: State): str
 
 const share = (px: number, whole: number): string => ((100 * px) / whole).toFixed(1);
 
+/** What the page shows over the form's box (each by its nearest id), from points across it in the window. */
+function coversOf(box: DOMRect): string[] {
+  const covers = new Set<string>();
+  const left = Math.max(0, box.left) + COVER_STEP / 2;
+  const top = Math.max(0, box.top) + COVER_STEP / 2;
+  const right = Math.min(innerWidth, box.right);
+  const bottom = Math.min(innerHeight, box.bottom);
+  for (let x = left; x < right; x += COVER_STEP) {
+    for (let y = top; y < bottom; y += COVER_STEP) {
+      const hit = document.elementFromPoint(x, y);
+      if (hit && !root().contains(hit)) covers.add(nameOf(hit));
+    }
+  }
+  return [...covers];
+}
+
+/** What lies over the form's box now, as problems (the beta's notice came up over it after it opened). */
+function coveredForm(state: State): string[] {
+  const covers = coversOf(part('.br-box').getBoundingClientRect());
+  return covers.length ? [`${state}: ${covers.join(', ')} ${BUG_REPORT_COVER_CANARY.name}`] : [];
+}
+
+/** An element as a report names it: the id nearest it, or its tag. */
+function nameOf(element: Element): string {
+  const named = element.closest('[id]');
+  return named ? `#${named.id}` : element.tagName.toLowerCase();
+}
+
 /** The form's box against the window, and its controls each found. */
 function formFound(state: State): BugReportFound {
   if (!bugReportOpen()) return { lines: [], problems: [`${state}: the form didn't open`] };
@@ -222,6 +280,7 @@ function formFound(state: State): BugReportFound {
   if (past) problems.push(`${state}: the form ${BUG_REPORT_CANARY.name}`);
   const scrolls = box.scrollHeight > box.clientHeight + 1;
   if (scrolls) problems.push(`${state}: the form scrolls (${box.scrollHeight} px of content in ${box.clientHeight})`);
+  problems.push(...coveredForm(state));
   for (const kind of REPORT_KINDS) problems.push(...reachable(kindButton(kind.id), `the kind ${kind.label}`, state));
   for (const [selector, name] of CONTROLS) problems.push(...reachable(root().querySelector<HTMLElement>(selector), name, state));
   const shot = bugReportShot();
@@ -346,6 +405,7 @@ async function reportMade(lab: Lab, canary: boolean): Promise<BugReportFound> {
   await lab.step(1);
   pictures.push(await lab.screen('bugReport-filled', ['a kind picked, what happened and what was expected typed'], '#bug-report .br-box'));
   const text = await wholeReport(lab, state, 'bugReport-whole');
+  problems.push(...coveredForm(state));
   for (const needed of ['About: Looks wrong', TYPED, EXPECTED, 'Where: the ', 'Build: ', 'Graphics: ', 'Browser: ']) {
     if (!text.includes(needed)) problems.push(`${state}: the report shown lacks "${needed}"`);
   }
@@ -366,6 +426,7 @@ async function reportMade(lab: Lab, canary: boolean): Promise<BugReportFound> {
   await openForm(lab, state);
   const emptied = part<HTMLTextAreaElement>('#br-text').value === '';
   if (!emptied) problems.push(`${state}: the form kept the report it had sent`);
+  problems.push(...coveredForm(state));
   await fillIn(lab, state);
   await lab.press('Escape');
   await lab.step(1);

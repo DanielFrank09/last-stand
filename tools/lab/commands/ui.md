@@ -22,8 +22,12 @@ form kept and Try again offered, Try again sending it to a reports service the c
 kind, text, facts and picture as sent, Done giving the game back, the form empty after a send, what's typed kept
 through Esc, Copy report copying it; on touch each kind 36 css px tall, each button 40 and each field's text 16 at
 least; the clipboard is stood in for, a new tab caught, and every report's POST must go to the lab's service, or the
-page turns it away (never production's); `--canary` makes the form's box twice the window's height, which must be
-found, and drops the report's picture on its way to the service, which the read-back must find; the Play together dialog,
+page turns it away (never production's); in the village the beta's notice is shown as the menu opens, as in the 20 s
+after a game opens, and nothing of the page may lie over the form (looked for every 10 css px across it, as it opens,
+shown whole and opened again: the notice lay over its title on a phone held sideways, and the controls' own checks,
+each at its middle, missed it); `--canary` makes the form's box twice the window's height, which must be found, lays a
+panel over the touch state's form, which must be found too, and drops the report's picture on its way to the service,
+which the read-back must find; the Play together dialog,
 `page/uiCoop.ts`: opened by its button with the co-op server found up (the local link), as a joiner refused for its
 name tag sees it, and on touch with its name tag field tapped: the dialog within the window, its name tag field, Open
 a room, the room's code and Join each found at its middle; asked to rename, the taken tag marked, named in the

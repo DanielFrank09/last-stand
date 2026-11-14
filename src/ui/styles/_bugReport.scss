@@ -87,16 +87,32 @@ body.touch {
 @media (max-width: 720px) {
   .br-cols { grid-template-columns: minmax(0, 1fr); }
 }
-// a short screen (a phone held sideways): tighter, the kinds four across, the picture smaller
+// a short screen (a phone held sideways), however narrow: the kinds across the whole form in two rows, the hint
+// beside their label, what happened down the left beside the rest. In one column, as a 640 px wide phone took the
+// narrow window's rule, its buttons lay under the window's foot on touch (778 px of content in 561).
 @media (max-height: 520px) {
-  .br-box { padding: 12px 18px; gap: 6px; }
-  .br-box .sm-title { font-size: 20px; }
-  .br-form, .br-done { gap: 6px; }
-  .br-kinds { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .br-hint { min-height: 1.25em; }
-  .br-shot .br-shot-frame { width: 110px; height: 63px; }
-  .br-shot .br-shot-side small { min-height: 1.25em; }
-  .br-box textarea { min-height: 70px; }
+  .br-box { padding: 10px 18px; gap: 5px; }
+  .br-box .sm-title { font-size: 19px; }
+  .br-form, .br-done { gap: 5px; }
+  .br-cols {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-areas: 'klabel hint' 'kinds kinds' 'tlabel elabel' 'text exp' 'text shot' 'text sent';
+    gap: 5px 18px;
+  }
+  .br-col { display: contents; }
+  #br-kind-label { grid-area: klabel; }
+  .br-kinds { grid-area: kinds; grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .br-hint { grid-area: hint; min-height: 0; align-self: end; font-size: 12px; }
+  .br-label[for='br-text'] { grid-area: tlabel; }
+  #br-text { grid-area: text; min-height: 0; }
+  .br-label[for='br-expected'] { grid-area: elabel; }
+  #br-expected { grid-area: exp; }
+  .br-shot { grid-area: shot; }
+  .br-sent { grid-area: sent; }
+  .br-sent pre { max-height: 90px; }
+  .br-shot .br-shot-frame { width: 100px; height: 57px; }
+  .br-shot .br-shot-side small { min-height: 0; }
+  .br-privacy { font-size: 11px; }
 }
 // typed into on a phone: the form at the top of what the keyboard leaves (ui/aboveKeyboard.ts)
 #bug-report.typing { align-items: flex-start; top: var(--seen-top, 0px); bottom: auto; height: var(--seen, 50vh); padding-top: 6px; }
