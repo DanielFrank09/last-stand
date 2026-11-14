@@ -327,7 +327,9 @@ async function insetsOf(devtools, insets) {
  */
 async function keyOf(page, type, key) {
   const devtools = await devtoolsOf(page);
-  await devtools.send('Input.dispatchKeyEvent', { type, ...keyFields(key) });
+  // (`keyRepeat`: the keyboard's own repeat of a key held, a keydown the page sees with `repeat` set)
+  if (type === 'keyRepeat') await devtools.send('Input.dispatchKeyEvent', { type: 'keyDown', autoRepeat: true, ...keyFields(key) });
+  else await devtools.send('Input.dispatchKeyEvent', { type, ...keyFields(key) });
 }
 
 /** `text` put in the page's focused field by the browser, as a paste or a phone's keyboard commits it. */
