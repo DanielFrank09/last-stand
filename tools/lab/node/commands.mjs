@@ -1165,6 +1165,19 @@ export const COMMANDS = {
     problemsOf: problemsIn,
   },
 
+  pace: {
+    each(side, options) {
+      const command = {
+        fixture: fixtureFrom(options),
+        scenarios: options.scenarios,
+        canary: Boolean(options.canary),
+      };
+      return side.command('pace', command);
+    },
+    textOf: asText,
+    problemsOf: problemsIn,
+  },
+
   nearaim: {
     each(side, options) {
       const command = {

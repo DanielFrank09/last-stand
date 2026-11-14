@@ -44,6 +44,7 @@ import type { LogOptions } from './log';
 import type { TooltipsOptions } from './tooltips';
 import type { CursorOptions } from './cursor';
 import type { SpinOptions } from './spin';
+import type { PaceOptions } from './pace';
 import type { NearAimOptions } from './nearAim';
 import type { AutoOptions } from './autoQuality';
 import type { RushOptions } from './rush';
@@ -572,6 +573,15 @@ export async function auto(_lab: Lab, command: AutoOptions): Promise<Report> {
 export async function spin(lab: Lab, command: SpinOptions): Promise<Report> {
   const { spinView } = await import('./spin');
   return spinView(lab, command);
+}
+
+/**
+ * `lab pace`: the hero walked on a screen whose browser times its frames on another screen's ticks, and moved from a
+ * 144 Hz screen to it: a shown frame's step must keep the steady pace (#552).
+ */
+export async function pace(lab: Lab, command: PaceOptions): Promise<Report> {
+  const { paceFrames } = await import('./pace');
+  return paceFrames(lab, command);
 }
 
 /**
