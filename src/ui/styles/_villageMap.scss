@@ -41,6 +41,14 @@
 .vm-close { position: absolute; right: ui(14px); top: ui(12px); z-index: 1; font: 700 ui(13px) var(--font-display);
   color: #3a2a1a; background: rgba(240, 226, 196, .9); border: 1px solid rgba(58, 42, 26, .7); padding: ui(4px) ui(10px);
   cursor: $cursor-hand; opacity: calc(var(--vm-open, 0) * 1); }
+/* (on touch there is no M key to name: an X alone, a finger's size; from play, "mobile should not have M to close map. Just an X") */
+.vm-close-x { display: none; }
+body.touch .vm-close-key { display: none; }
+/* (drawn, so it sits in the box's middle: the ✕ glyph sat where its font put it, off centre; and in the marker's red
+   with a pale cross, as on the parchment's own colours it was easy to miss: "make the X more obvious") */
+body.touch .vm-close-x { display: block; width: 56%; height: 56%; fill: none; stroke: #fbf1d6; stroke-width: 3.4; stroke-linecap: round; }
+body.touch .vm-close { display: grid; place-items: center; padding: 0; width: touch(44px); height: touch(44px);
+  background: #a3241c; border: 2px solid #4a120d; border-radius: ui(6px); box-shadow: 0 2px 6px rgba(0, 0, 0, .45); }
 @media (prefers-reduced-motion: reduce) {
   .vm-names, .vm-you { transition: none; }
 }
