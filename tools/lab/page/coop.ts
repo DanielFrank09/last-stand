@@ -36,7 +36,7 @@ import { chatInput, chatNow, SAID, ESC_AT, QUIET, type ChatSample } from './coop
 import { duelInput, duelNow, pickLost, type DuelNow } from './coopDuel';
 export {
   coopDuelAnswer, coopDuelFit, coopDuelGo, coopDuelLosePicks, coopDuelMenu, coopDuelMouseBack, coopDuelParts,
-  coopDuelPlace, coopDuelRound, coopDuelSetUp,
+  coopDuelPart, coopDuelPlace, coopDuelRound, coopDuelSetUp,
 } from './coopDuel';
 export {
   coopCastInLobby, coopCloseHall, coopHallSeen, coopLeaveRun, coopLobbyBar, coopOpenHall, coopPractiseAgain,

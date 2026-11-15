@@ -216,6 +216,9 @@ body.touch #minimap { pointer-events: auto; touch-action: none; -webkit-touch-ca
    The scale leaves an element's offsets from the screen's edges alone: give those as hud() too. */
 #bottombar { scale: var(--hud, 1); transform-origin: left bottom; }
 #target    { scale: var(--hud, 1); transform-origin: left top; top: hud(88px); }
+/* (in a duel the score and the round's clock stand under the badge: the rival aimed at is named under them. Where a
+   foe's name stands it lay over the score) */
+#hud.duel #target { top: hud(150px); }
 #wavebadge { scale: var(--hud, 1); transform-origin: left top; }
 #decision  { scale: var(--hud, 1); transform-origin: left top; }
 #banner    { scale: var(--hud, 1); transform-origin: left top; }

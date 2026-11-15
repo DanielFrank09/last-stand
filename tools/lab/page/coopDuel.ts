@@ -220,11 +220,18 @@ function fitHere(ask: HTMLElement, card: HTMLElement, open: boolean): DuelFit {
 }
 
 /** The host sets the duel up in its menu: the battleground, the rounds that win it and whether gear counts. */
-export function coopDuelSetUp(_lab: Lab, set: { ground: string; wins: number; gear: boolean }): void {
+export function coopDuelSetUp(_lab: Lab, set: { ground: string; wins: number; gear: boolean; size?: 1 | 2 }): void {
   openMenu();
+  if (set.size) press('#pvp-size', String(set.size));
   press('#pvp-ground', set.ground);
   press('#pvp-wins', String(set.wins));
   press('#pvp-gear', set.gear ? 'own' : 'none');
+}
+
+/** This game's player's part in the duel as set up ('0', '1' or 'watch'; '' with none). */
+export function coopDuelPart(): string {
+  const part = duels?.duelSetup.parts.get(G.player.slot);
+  return part === undefined ? '' : String(part);
 }
 
 /** The menu's button pressed: the guest's Ready, the host's Begin. */
@@ -243,6 +250,8 @@ export interface DuelNow {
   /** the rivals standing among this game's foes, and every other foe (a duel has none) */
   rivals: number; foes: number;
   scoreShown: string; resultShown: string;
+  /** whether this game's own hero is drawn (a watcher's isn't), and the hero its camera follows while it watches */
+  heroShown: boolean; watching: string;
 }
 
 export function duelNow(): DuelNow | null {
@@ -257,6 +266,8 @@ export function duelNow(): DuelNow | null {
     life: G.player.life, maxLife: G.player.stats.maxLife, alive: G.player.alive, truce: G.player.truce,
     rivalLife: rival?.life ?? 0, rivalAlive: rival?.alive ?? false,
     rivals: standIns.length, foes: G.enemies.length - standIns.length,
+    heroShown: G.player.obj.visible,
+    watching: $('#spectate') && !$('#spectate')!.classList.contains('hidden') ? ($('#spectate')!.textContent ?? '').replace(/\s+/g, ' ').trim().slice(0, 40) : '',
     scoreShown: $('#duel-score .ds-points')?.textContent ?? '',
     resultShown: result && !result.classList.contains('hidden') ? $('#duel-result .dr-title')?.textContent ?? '' : '',
   };
@@ -278,8 +289,12 @@ const STRIKE_HELD = 3;
  * a little life if he's to lose it (`weak`), striking if he's to win it (`strikes`). `heldWhole` is the canary: the
  * weak hero's life put back every frame, so no blow ever shows.
  */
-export function coopDuelRound(lab: Lab, set: { role: 'host' | 'guest'; strikes: boolean; weak: boolean; heldWhole?: boolean }): void {
-  const [x, z] = SPOTS[set.role], [rx, rz] = SPOTS[set.role === 'host' ? 'guest' : 'host'];
+export function coopDuelRound(lab: Lab, set: {
+  role: 'host' | 'guest'; strikes: boolean; weak: boolean; heldWhole?: boolean;
+  /** a party's: where this hero stands and the spot he faces, in place of the pair's two spots */
+  spot?: [number, number]; faces?: [number, number];
+}): void {
+  const [x, z] = set.spot ?? SPOTS[set.role], [rx, rz] = set.faces ?? SPOTS[set.role === 'host' ? 'guest' : 'host'];
   G.player.place(new THREE.Vector3(x, 0, z), Math.atan2(rx - x, rz - z));
   if (set.weak) G.player.life = LITTLE_LIFE;
   play.strikes = set.strikes;
@@ -297,9 +312,11 @@ export function duelInput(frame: number): Frame | null {
   const duel = duels?.duelOn();
   if (!duel) return null;
   if (!play.strikes || duel.phase !== 'fight' || !G.player.alive) return {};
-  const rival = G.players.find((player) => !player.local);
+  // (the nearest rival still standing, as this game has them among its foes: in a party the others are not all rivals)
+  const far = (foe: { pos: THREE.Vector3 }): number => foe.pos.distanceTo(G.player.pos);
+  const rival = G.enemies.filter((foe) => (foe as { standIn?: boolean }).standIn && foe.alive).sort((a, b) => far(a) - far(b))[0];
   if (!rival) return {};
   const aim = rival.pos.clone();
-  aim.y = rival.model.height * 0.6;
+  aim.y = rival.height * 0.6;
   return { aim, m0: frame % STRIKE_EVERY < STRIKE_HELD };
 }

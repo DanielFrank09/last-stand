@@ -159,6 +159,14 @@ it: the struck hero down on both screens, the score the same on both and on the 
 before the duel (less in it, with no gear). `--canary`: the struck hero's life put back every frame on its own game,
 so no round is won, which must be found. `--pictures`: both screens at the menu, the count, a fight, the result and
 back in the village (`out/coop/duel-*.png`).
+With `--party 3` or `4` it plays a party's duel instead (`node/coopDuelParty.mjs`), first to 1: each player takes his
+own place in the menu by a click (three: host against guest, the third watching; four: host and guest against the
+other two), the guests who fight ready and the host begins. Judged on every game: the same places, each fighter's
+rivals among its foes (1, or 2 in a 2 v 2; none for the watcher, whose hero must be out of the arena with the
+watching bar up) and no other foe; in a 2 v 2 the round must go on with one of the struck side down and end with
+both; the match's score and winner the same on every game, "Victory", "Defeat" or "The duel is over" each player's
+own, no hero of the side that struck down, and every game back in the village with no hero left out
+(`out/coop/duel3-*.png`, `duel4-*.png`: the host's and the guest's screens).
 
 `ghosts` (`diesLost`): the host kills three dazed foes by the guest, and the lab's link drops every death report on
 its way to the guest, as a game in #579 lost them (its copies stood, still, with their bars, through the choice after
