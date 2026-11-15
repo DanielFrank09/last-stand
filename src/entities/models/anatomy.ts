@@ -322,13 +322,19 @@ export function clampWrist(q: THREE.Quaternion, left: boolean, out: THREE.Quater
   const p = Math.max(p0, Math.min(p1, w.pronation)), f = Math.max(f0, Math.min(f1, w.flexion)), r = Math.max(r0, Math.min(r1, w.radial));
   const by = Math.abs(p - w.pronation) + Math.abs(f - w.flexion) + Math.abs(r - w.radial);
   if (!by) { out.copy(q); return 0; }
-  // (back to the forearm's twist from the pronation, and the swing from its two bends)
-  const tw = (left ? 90 - p : p - 90) / DEG;
-  _sv.set(f / DEG, 0, (left ? -r : r) / DEG);
+  wristTurn(p, f, r, left, out);
+  return by;
+}
+
+/** the hand's turn on its forearm (twist · swing) with the forearm turned over `pronation` and the wrist bent `flexion`
+ *  and `radial` (degrees, as `wristAngles` reads them), into `out` */
+export function wristTurn(pronation: number, flexion: number, radial: number, left: boolean, out: THREE.Quaternion): THREE.Quaternion {
+  // (the forearm's twist from the pronation, and the swing from the wrist's two bends)
+  const tw = (left ? 90 - pronation : pronation - 90) / DEG;
+  _sv.set(flexion / DEG, 0, (left ? -radial : radial) / DEG);
   const a = _sv.length();
   if (a < 1e-9) _sw.identity(); else _sw.setFromAxisAngle(_sv.multiplyScalar(1 / a), a);
-  out.setFromAxisAngle(Y, tw).multiply(_sw);
-  return by;
+  return out.setFromAxisAngle(Y, tw).multiply(_sw);
 }
 
 // --- the dev builds' watch ------------------------------------------------------------------------------------

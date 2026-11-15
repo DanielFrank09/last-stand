@@ -45,7 +45,6 @@ const COLLAR_RISE = 0.02;
  *  side (the rig turns it about joints in front of its middle), and came 3.6 mm out through it */
 const COLLAR_EASE = 0.006;
 const UP = V(0, 1, 0), FWD = V(0, 0, 1);
-const DRINK = { wrist: V(-0.07, -0.16, 0.14), tipped: V(-0.08, 0.08, 0.19), pole: V(-0.35, -1, 0.5), tippedPole: V(-0.6, -0.4, 1) };
 /** where the nock comes to at full draw (the head's mm): at the side of the jaw, low along it, below and in front of the ear, the string
  *  a finger's width off the face, so the arrow and its fletching lie beside the cheek and the beard (on the jaw's skin, the
  *  arrow's last 9 cm went through them), and the string's lower half passes in front of the coat over the bow shoulder
@@ -656,7 +655,6 @@ export function* rangerSteps(): ModelSteps {
   // (the bow's upper limb's tip, as it bends: the weapon's own, for what follows the weapon and not the shot)
   const limbTip = joint(bow.group);
   const flask = buildFlask(kit); flask.name = 'flask'; j.handR.add(flask);
-  const drinkRig = { ...j, shoulderL: j.shoulderR, elbowL: j.elbowR, handL: j.handR };
   const legs = new LegIK(j), root = j.root;
   root.scale.setScalar(1.08);
   yield;
@@ -899,7 +897,7 @@ export function* rangerSteps(): ModelSteps {
     // carrying the bow: the arm a little out from the side and the elbow a little bent (the walk swings it)
     j.shoulderL.rotation.z += CARRY_RAISE; j.elbowL.rotation.x -= CARRY_BEND;
     hook(handR, 0, 0);
-    const drinkOut = drinking ? drink(drinkRig, a.t, mouth, DRINK, handR, flask) : 0;
+    const drinkOut = drinking ? drink(j, a.t, mouth, handR, flask, fp ? undefined : body) : 0;
     flaskOut = damp(flaskOut, drinkOut, 16, dt); flask.visible = flaskOut > 0.02; flask.scale.setScalar(Math.max(0.02, flaskOut));
     st.look?.(aim < 0.5 ? 1 : 0);
     if (st.dead >= 0) { deathFall(j, st.dead); legs.reset(); }

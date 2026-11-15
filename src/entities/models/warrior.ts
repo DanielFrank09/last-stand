@@ -15,7 +15,7 @@ import { LegIK, IK } from './ik';
 import { fitArm, solveArm, type ArmResult } from './armIK';
 import { bodyShape, clampWrist, GRIPPED_FLEXION } from './anatomy';
 import { curve, PoseFade, type Keys } from './motion';
-import { buildFlask, drink, drinkUp, holdFlask, DRINK_SHEATHED, type DrinkHold } from './flask';
+import { buildFlask, drink, drinkUp, holdFlask, DRINK_SHEATHED } from './flask';
 import { taperTube, twist, plate, edgeTube, strap, belt, buckle, stud, disc, furTufts, furTuftsSteps, Skirt, SkirtLimbs, armOffThigh, merge, scaleUV, lod, type SurfaceFn, type JointPoint } from './armor';
 import { headSteps, HERO_HEADS, buildNeck, toGroup, handSkin, HEAD_MM } from './head';
 import { NECKLINE_BACK, onTunic, tunicCutSteps, SetInShoulders, type ArmBlend } from './tunic';
@@ -285,8 +285,6 @@ function dipUnder(at: THREE.Vector3, dir: THREE.Vector3, flat: THREE.Vector3, fa
 }
 /** a blade's turn in the fist about its own length (third person): its flats along the palm, its edge (an axe's bit) out over the knuckles, as a real one is held */
 const MOUNT = -Math.PI / 2;
-/** drinking: the elbow raised out to the side, the wrist out to the left of the chin (as from a horn: the shield on that forearm turns edge on beside the head, not over the face) */
-const DRINK: DrinkHold = { wrist: new THREE.Vector3(0.07, -0.16, 0.14), tipped: new THREE.Vector3(0.08, 0.08, 0.19), pole: new THREE.Vector3(0.35, -1, 0.5), tippedPole: new THREE.Vector3(0.6, -0.4, 1) };
 const REST_FEET = [0.13, 0.09, 0.15, -0.14, -0.1, -0.55], FIGHT_FEET = [0.13, 0.22, 0.15, -0.14, -0.15, -0.55];
 /** Twin Fangs as the skill times it (data/balance `FANGS`, as tuned): the shares of it that are the lunge and that its
  *  blades strike at, the right's and the left's (each cut's start; through the eyes, where it crosses the aim), and
@@ -2304,7 +2302,7 @@ export function* warriorSteps(): ModelSteps {
       } else if (a.name === 'drink' && !fp) {
         // the healing draught: the free hand takes the flask from the belt and drinks it (models/flask.ts); the shield
         // stays on its arm, a two-hander's left hand lets go of the grip (out of its reach)
-        flaskWant = drink(j, k, mouth, DRINK, handL, flask); aw = 1; guard = 0; drinkLift = drinkUp(k);
+        flaskWant = drink(j, k, mouth, handL, flask, fp ? undefined : body); aw = 1; guard = 0; drinkLift = drinkUp(k);
       } else if (a.name === 'buff') {
         // war cry: gathered in, hunched over the fists, then thrown open, chest out, arms flung wide and up,
         // head back in the roar (held as the cast ends: the fade out of it is slow)
@@ -2637,6 +2635,9 @@ export function* warriorSteps(): ModelSteps {
     // (through the eyes the body isn't drawn, nor its shadow: the mail swings undraped)
     skirt.update(fL, fR, move, t, dt, fp ? undefined : legBodies.list, fp ? undefined : handBodies.list);
 
+    // the flask comes out of the fist and is put away again (before the fist closes round it: shown a frame before
+    // it was first held, it lay the way the last drink left it, 70 degrees off, for that frame)
+    flaskOut = damp(flaskOut, flaskWant, 16, dt); flask.visible = flaskOut > 0.02; flask.scale.setScalar(Math.max(0.02, flaskOut));
     // fists round whatever they hold; an empty hand hangs loosely curled
     const along = (g: THREE.Object3D) => _hd.set(0, 1, 0).transformDirection(g.matrixWorld);
     // (each handle diagonal across its palm by the slant the arm took, the weapon seated in that fist)
@@ -2646,8 +2647,6 @@ export function* warriorSteps(): ModelSteps {
     else if (twoHeld && held) hold(handL, along(grip), held.r, _up, slantL);
     else if (flaskOut > 0.01) holdFlask(handL, flask, flaskOut);
     else poseHand(handL, shield.visible ? 1.35 : 0.5 + Math.sin(t * 1.3 + 1) * 0.05, 0.08);
-    // the flask comes out of the fist and is put away again
-    flaskOut = damp(flaskOut, flaskWant, 16, dt); flask.visible = flaskOut > 0.02; flask.scale.setScalar(Math.max(0.02, flaskOut));
 
     if (dt > 0) for (const f of furs) f.update(dt);
 

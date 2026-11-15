@@ -53,7 +53,12 @@ every third frame; from the front, the left and above, framed on the path): a he
 axe"), so its fast frames on the way down (from its highest: the raise crosses the body from a guard held across it)
 should run straight from above, and the line says how far they stray off it (two-handed Power Strike: 39 to 49 cm
 with its shoulder turned across him as it's raised, 11 to 12 raised across instead); its canary moves one fast point
-30 cm aside. The cast scenario runs 4.5 s from the press, through the stand after the end until a two-hander goes
+30 cm aside. While the healing draught's flask is out (`--skill potion`), the elbow of the arm that holds it and the
+flask itself are followed frame by frame (`page/flaskMoves.ts`, in the hero's own frame): the elbow's fastest move a
+frame and the flask's fastest turn, said, and listed with `--frames` from 6 cm or 12 degrees (the drink's arm is solved
+afresh each frame for the flask's place on its way to the lips: with every joint within its range on every frame, the
+elbow changed side in one, 28 cm, #464; the tip itself turns the flask 20 degrees a frame); its canary moves the
+elbow 30 cm in a frame. The cast scenario runs 4.5 s from the press, through the stand after the end until a two-hander goes
 onto his shoulder (at 2.5 s a 1.5 s cast's stand went unread).
 `--at x,z` and `--facing` stand every scenario elsewhere (`--at 0,4.7`: the dais's edge facing off it, the ground ahead a step lower than under
 his feet, as off a plinth in the hall of heroes, where the left hand let go of a two-hander after Power Strike).
