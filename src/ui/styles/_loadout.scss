@@ -4,8 +4,10 @@
 
 /* ---------- lobby spell loadout: the key bar; the book slides up over it only to remap ----------
    Kept as plain as can be (no frames, a dark backing only), to leave the eye on the skills. */
-#menu #loadout { border: none; box-shadow: none; background: rgba(8,7,9,.8); border-radius: 6px 6px 0 0; }
-#loadout { position: relative; pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 8px 12px 10px;
+#menu #loadout { border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 20px; margin-bottom: 6px;
+  background: rgba(7, 8, 13, 0.78); backdrop-filter: blur(22px) saturate(140%);
+  box-shadow: 0 0 0 4px rgba(5, 6, 10, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 16px 40px rgba(0, 0, 0, 0.75); }
+#loadout { position: relative; pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 10px 14px 12px;
   max-width: 100%; zoom: var(--ui, 1); }
 .lo-book { display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 100%; animation: lo-open .18s ease-out; }
 #loadout:not(.open) .lo-book { display: none; }

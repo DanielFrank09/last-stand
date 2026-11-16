@@ -19,10 +19,10 @@
 /* bottom HUD: [health] [abilities] [energy] in a single compact row */
 #bottombar { position: absolute; left: 50%; bottom: hud(12px); transform: translateX(-50%); display: flex; align-items: center; gap: 0;
   contain: layout paint; filter: drop-shadow(0 6px 14px rgba(0,0,0,.85)); }
-.bar { position: relative; width: 300px; height: 46px; background: linear-gradient(#0a0808, #1a1414); overflow: hidden;
-  @include frame(var(--frame), 0 0 0 1px #000, inset 0 8px 14px rgba(0,0,0,.6)); }
-.bar.life { border-radius: 23px 0 0 23px; border-right: none; }
-.bar.energy { border-radius: 0 23px 23px 0; border-left: none; }
+.bar { position: relative; width: 290px; height: 38px; background: rgba(7, 8, 13, 0.82); backdrop-filter: blur(14px); overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: inset 0 4px 12px rgba(0,0,0,.65), 0 4px 16px rgba(0,0,0,.6); }
+.bar.life { border-radius: 9999px 0 0 9999px; border-right: none; }
+.bar.energy { border-radius: 0 9999px 9999px 0; border-left: none; }
 .bar .fill { position: absolute; top: 0; bottom: 0; left: 0; width: 100%; transition: width .1s linear; }
 .bar.life .fill { left: auto; right: 0; background: linear-gradient(180deg, #ff5a4a 0%, #c4141c 35%, #6a0408 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.35); }
 .bar.life .lag { position: absolute; top: 0; bottom: 0; right: 0; background: rgba(255,210,140,.45); transition: width .6s ease-out .15s; z-index: 0; }
@@ -41,11 +41,11 @@
 .gem-num { font-family: var(--font-display); font-size: 24px; font-weight: 900; font-variant-numeric: lining-nums tabular-nums; color: var(--accent); line-height: 1; text-shadow: 0 0 8px rgba($accent-glow, .5); }
 #wavebadge { position: absolute; top: hud(10px); left: 50%; transform: translateX(-50%); width: 70px; height: 70px; }
 #wavebadge .gem-num { font-size: 28px; }
-#hotbar { display: flex; gap: 8px; padding: 8px 14px; position: relative; z-index: 3; background: rgba(14, 12, 16, 0.9); backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 235, 190, 0.16);
-  box-shadow: 0 0 0 4px rgba(8, 7, 10, 0.7), inset 0 1px 1px rgba(255, 240, 210, 0.14), 0 10px 26px rgba(0,0,0,.85); border-radius: 14px; }
-.slot { position: relative; width: 62px; height: 62px; border: 1px solid rgba(255, 235, 190, 0.16); box-shadow: inset 0 1px 0 rgba(255, 240, 210, 0.12), inset 0 0 12px rgba(0,0,0,.9);
-  display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 9px; pointer-events: auto; transition: none; }
+#hotbar { display: flex; gap: 8px; padding: 8px 14px; position: relative; z-index: 3; background: rgba(7, 8, 13, 0.82); backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 0 0 4px rgba(5, 6, 10, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 12px 32px rgba(0,0,0,.85); border-radius: 18px; }
+.slot { position: relative; width: 60px; height: 60px; border: 1px solid rgba(255, 255, 255, 0.12); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), inset 0 0 12px rgba(0,0,0,.85);
+  display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 12px; pointer-events: auto; transition: none; }
 .slot .icon { font-size: 33px; line-height: 1; filter: drop-shadow(0 0 6px currentColor); }
 /* a painted icon (ui/skillArt.ts) fills the slot, and the slot's frame and shade (its box-shadow, whatever state sets it)
    are drawn again over it, under the cooldown and the key */
@@ -83,7 +83,7 @@
 .mm-title { font-family: var(--font-display); font-size: 16px; color: #f0e2c0; text-shadow: 0 2px 4px #000; margin-bottom: 2px; }
 // (a finger held on it pings there: ui/ping.ts)
 body.touch #minimap { pointer-events: auto; touch-action: none; -webkit-touch-callout: none; user-select: none; }
-#minimap { width: 200px; height: 200px; border-radius: 50%; border: 4px solid #6e6a62; box-shadow: 0 0 0 2px #000, inset 0 0 20px #000, 0 6px 14px rgba(0,0,0,.8); background: rgba(10,10,12,.55); }
+#minimap { width: 200px; height: 200px; border-radius: 50%; border: 2px solid rgba(226, 192, 126, 0.42); box-shadow: 0 0 0 5px rgba(5, 6, 10, 0.55), inset 0 0 24px rgba(0,0,0,.85), 0 10px 28px rgba(0,0,0,.8); background: rgba(7, 8, 13, 0.65); }
 .objectives { align-self: stretch; margin-top: 12px; padding-left: 8px; }
 .obj-title { font-family: var(--font-display); font-size: 16px; color: #8fa8ff; text-shadow: 0 1px 3px #000; }
 .obj-line { display: flex; align-items: center; gap: 6px; font-size: 14px; text-shadow: 0 1px 2px #000; }
