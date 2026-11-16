@@ -25,6 +25,7 @@ import { setHdrAllowed } from './hdr';
 import { setSkullDetail } from '../world/skull';
 import { setSunShadowStill } from '../world/props';
 import { setClutterShare, setLeafShare } from '../world/culling';
+import { setSimpleTrees } from '../world/simpleTrees';
 import { setGearGlowByLevel } from './materials';
 
 /** how far the moon's shadows' edges blur on the floor (m): at its default a texel, 1.7 to 7 cm by the map's size,
@@ -220,6 +221,7 @@ function apply(l: QualityLevel, most = Infinity): void {
   setSunShadowStill(p.stillSunShadow);
   setClutterShare(p.clutter);
   setLeafShare(p.leaves);
+  setSimpleTrees(p.simpleTrees);
   // (its map made anew at another size, or its casters another set: drawn again)
   G.arena.sunShadowChanged();
   setParticleShare(p.particles);

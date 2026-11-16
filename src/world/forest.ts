@@ -15,6 +15,7 @@ import { boulderGeo, boxUVs, buildDaySky, boxWithUV, buildGrassTuft, lumpy, plac
 export const FOREST_ENV: EnvColours = { sky: [0.55, 0.7, 0.8], panel: [1.3, 1.25, 1.1] };
 import { asClutter, cullInCells, eachInstance, gridCell, ringSector, thinLeaves } from './culling';
 import { growTree, REACH_BANDS, type Grow } from './ezTrees';
+import { simpleTree } from './simpleTrees';
 import { canopyGeo, fernClumpGeo, fernTexture, leafClusterTexture, leafTexture, lightShafts, litterGeo } from './foliage';
 import { bend, rag, taperTube } from '../entities/models/shapes';
 import { PropSet, instanceLook, meshLook, groupLook } from './destructible';
@@ -355,7 +356,9 @@ export const buildForest: BiomeBuilder = (scene) => {
     leaves[k].name = `trees' leaves: ${TREE_KINDS[k].preset}`;
     // (what an arrow over the thicket meets: each tree's trunk, its limbs let go)
     for (let i = 0; i < used[k]; i++) wall.addGeometry(kinds[k].trunk, barks[k].getMatrixAt(i, _mx), false, 'beyond');
-    for (const mesh of [barks[k], leaves[k]]) scene.add(...asTree(...cullInCells(mesh, eachInstance)));
+    const bark = cullInCells(barks[k], eachInstance), crown = cullInCells(leaves[k], eachInstance);
+    scene.add(...asTree(...bark, ...crown));
+    simpleTree(kinds[k], bark, crown);
   });
 
   // --- Gates: arches of twisted roots around a green portal -----------------------
@@ -595,6 +598,7 @@ export const buildForest: BiomeBuilder = (scene) => {
     breakable.add(obstacles.length - 1, 10, 0x4a3520, look, 'wood');
   });
   for (const m of asTree(sapBark, sapLeaves)) { m.castShadow = m.receiveShadow = true; scene.add(m); }
+  simpleTree(young, [sapBark], [sapLeaves]);
   sapBark.name = 'young trees\' bark';
   sapLeaves.name = 'young trees\' leaves';
   updaters.push(contactShadows(scene, obstacles));
