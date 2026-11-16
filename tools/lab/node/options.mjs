@@ -28,13 +28,13 @@ export const README_SHOTS = ['village', 'campfire', 'hall', 'stash', 'forest', '
 export const UI_STATES = [
   'lobby', 'tooltip', 'glow', 'help', 'saves', 'heroes', 'readying', 'readyingHeroes', 'clicked', 'views',
   'behindProps', 'cloudIdentity',
-  'logLobby', 'perfAsk', 'pauseLobby', 'betaNotice', 'coop', 'coopRename',
+  'logLobby', 'perfAsk', 'pauseLobby', 'betaNotice', 'coop', 'coopRename', 'bugReport', 'panelLinks',
   'villageMap', 'villageHud', 'villageHudTouch',
-  'heroesWarming', 'skillTipsTouch', 'sheetTouch', 'litTouch', 'buttonsTouch', 'coopTouch', 'autoFull',
+  'heroesWarming', 'skillTipsTouch', 'sheetTouch', 'litTouch', 'buttonsTouch', 'coopTouch', 'panelLinksTouch', 'autoFull',
   'run', 'scores', 'perf', 'perfMini', 'perfGraph', 'perfParty', 'decision', 'perfAskBreak', 'pause', 'pauseSettings',
   'pausePerformance', 'pauseBeta', 'profiling', 'pauseVolume',
   'pauseTabKept', 'pauseAbandon', 'summary', 'skillTips',
-  'log', 'logTouch', 'hudTouch', 'decisionTouch', 'perfAskTouch', 'buttonsRunTouch',
+  'log', 'logTouch', 'hudTouch', 'decisionTouch', 'perfAskTouch', 'buttonsRunTouch', 'bugReportTouch',
 ];
 
 /** the ways a hero may hold his weapons (src/loot/loadout.ts `WeaponStyle`) */
@@ -425,6 +425,10 @@ export const COMMANDS = {
           + 'behindProps (a column planted between the camera and each dummy\'s label: '
           + 'every label hidden behind it, every one shown with it gone; the canary plants it aside), run (the HUD '
           + 'with a hurt foe\'s bar and damage numbers), '
+          + 'panelLinks (with --panels: the hero panel\'s row of links, Install shown, each on its one line, '
+          + 'inside the panel and found, Report a bug opening the form, how far the panel scrolls; '
+          + 'panelLinksTouch the same on touch, each link a finger\'s height; the canary lays the row out as one '
+          + 'line that wraps, as before), '
           + 'scores, perf, perfMini (the performance overlay\'s Mini pressed in the pause menu: the frame rate '
           + 'and its graph alone, then Full and Off), perfGraph (the overlay\'s frame rate and graph scale read '
           + 'after every frame of its first 5 s, never far over the frames\' own rate; the canary runs a burst of '
@@ -442,7 +446,11 @@ export const COMMANDS = {
           + 'beside the worn one\'s: its buttons within the window and the sheet), litTouch (a worn item pressed long: '
           + 'the stash items that fit its slot lit until a tap elsewhere), buttonsTouch and buttonsRunTouch '
           + '(every touch button shown in the lobby, its practice and a run: nothing over its middle, and a '
-          + 'finger\'s tap there does what it\'s for; the canary lays a clear sheet over the pause button)',
+          + 'finger\'s tap there does what it\'s for; the canary lays a clear sheet over the pause button), '
+          + 'bugReport and bugReportTouch (the bug report\'s form opened from the pause menu, by the mouse in the '
+          + 'lobby and a finger over a run: within the window, each control found, a report made of it and sent '
+          + 'to a reports service of the lab\'s own, failed once and sent again, then read back; the canary makes '
+          + 'its box twice the window\'s height and drops the report\'s picture on its way)',
       },
       hdr: { kind: 'switch', help: 'HDR on, as on a display in HDR mode (the pause menu shows its levels)' },
       canary: {

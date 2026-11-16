@@ -18,6 +18,13 @@ const TRUSTED = '10.0.0.77';
 const TOKEN = 'test-token';
 let server, base;
 
+/** The bytes of the traces' own files in the data folder: its `reports/` folder (the bug reports') left out, as a
+ *  folder's own size is 4096 B on Linux and 0 on Windows (counted, CI failed what Windows passed). */
+function tracesOnDisk() {
+  const files = readdirSync(DATA).map((name) => statSync(join(DATA, name))).filter((entry) => entry.isFile());
+  return files.reduce((sum, entry) => sum + entry.size, 0);
+}
+
 before(async () => {
   mkdirSync(DATA, { recursive: true });
   Object.assign(process.env, { DATA, TRACES_TOKEN: TOKEN, ORIGINS: `${ORIGIN},https://pr-*.ls.wellscoped.dev`, PER_DAY: '4',
@@ -101,7 +108,7 @@ test('takes any number from a trusted address', async () => {
 
 test('drops the oldest once the disk holds over its cap', async () => {
   const { traces } = await (await read('/traces?limit=500')).json();
-  const onDisk = readdirSync(DATA).reduce((sum, name) => sum + statSync(join(DATA, name)).size, 0);
+  const onDisk = tracesOnDisk();
   assert.ok(onDisk <= 1000, `the disk holds ${onDisk} B, over the 1000 B cap`);
   // (seven were taken, each some 270 B and its line some 250: the newest kept, the oldest dropped)
   assert.ok(traces.length >= 1 && traces.length < 7, `${traces.length} kept`);
@@ -170,6 +177,7 @@ test('serves a browser the page, an API client the list', async () => {
   assert.equal(pageR.headers.get('cache-control'), 'no-store', 'the page names the build\'s files: never cached');
   const html = await pageR.text();
   assert.doesNotMatch(html, /<script(?![^>]*\ssrc=)[^>]*>|<style/, 'nothing inline: the CSP allows none');
+  assert.match(html, /id="report-rows"/, 'the page lists the bug reports under the traces');
   // Its script and style: the build's, named by their content's hash, cached for good, without signing in.
   const files = [...html.matchAll(/(?:src|href)="(\/traces\/assets\/[^"]+)"/g)].map((m) => m[1]);
   assert.ok(files.some((f) => /\/index-[\w-]{8}\.js$/.test(f)) && files.some((f) => /-[\w-]{8}\.css$/.test(f)), files.join());
@@ -192,7 +200,7 @@ test('sums up all that is kept, past a page of the list', async () => {
   const { traces, total } = await (await read('/traces?limit=500')).json();
   assert.equal(s.count, total);
   assert.equal(s.bytes, traces.reduce((sum, t) => sum + t.bytes, 0));
-  const onDisk = readdirSync(DATA).reduce((sum, name) => sum + statSync(join(DATA, name)).size, 0);
+  const onDisk = tracesOnDisk();
   assert.equal(s.diskBytes, onDisk, 'the disk use counts the traces and their lines');
   assert.equal(s.newest, traces[0].at);
   assert.equal(s.oldest, traces[traces.length - 1].at);

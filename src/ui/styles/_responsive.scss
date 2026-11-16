@@ -58,6 +58,12 @@ body.touch .stow-hint kbd { display: none; }
 /* phones held sideways: a small minimap, no objectives or spoils list; the stash's title is at the
    top of the panel, so its filter opens downwards, over the stash */
 @media (max-height: 520px) {
+  /* the hero panel's links as main had them, touch too, their rows together: the panel has room for two such rows
+     and no more (main's own, with Install shown); a finger's height scrolled it 53 px on a 832x384 phone */
+  .menu-links { row-gap: 0; }
+  .menu-links .link, body.touch .menu-links .link { min-height: 0; padding-block: 4px; line-height: normal; }
+  /* (and its sections 7 px apart, as their second row scrolled the panel 21 px at 10) */
+  .ml-body { gap: 7px; padding-block: 12px; }
   #stash-filter { top: calc(100% + 6px); bottom: auto; }
   #minimap-wrap .mm-title, #minimap-wrap .objectives { display: none; }
   /* the minimap at the corner, a thin line round it in place of the bezel and its dark ring */

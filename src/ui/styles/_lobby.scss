@@ -22,7 +22,8 @@
 #menu.ahead { z-index: 101; opacity: .004; }
 #menu.ahead .panel { pointer-events: none; }
 .menu-left { position: relative; width: 420px; display: flex; flex-direction: column; background: linear-gradient(90deg, rgba(8,7,9,.94), rgba(8,7,9,.84)); }
-.ml-body { display: flex; flex-direction: column; gap: 12px; min-height: 0; padding: 22px 28px; overflow-y: auto; scrollbar-width: thin; }
+// (its sections 10 px apart, as a short screen's: at 12 the links' second row scrolled it at 1920x1080)
+.ml-body { display: flex; flex-direction: column; gap: 10px; min-height: 0; padding: 22px 28px; overflow-y: auto; scrollbar-width: thin; }
 /* the side panels and the village's card wear the ornamented frame of the full-screen menus (see .pause-box) */
 .menu-left, .menu-right, #vcard { @include frame(var(--frame), 0 10px 40px rgba(0,0,0,.8)); }
 .menu-left::before, .menu-right::before, #vcard::before { content: ''; position: absolute; inset: 6px; pointer-events: none; border: 1px solid rgba($frame, .22);
@@ -101,7 +102,15 @@
   background: $well; user-select: none; }
 #{$village} #opt-wave .wv-val { min-width: 6.5em; }
 #opt-wave .wv-val small { color: var(--accent); }
-.menu-links { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 0 6px; }
+// (in rows of three equal columns, each link centred in its own, the rows apart: one more on a line, Install or
+// Report a bug, wrapped alone onto the panel's corner, and six fit one line only under 13 px; justified to the edges,
+// the outer ones ran into the panel's corner brackets and the rows read as links of two lines;
+// `lab ui --states panelLinks,panelLinksTouch --panels`)
+.menu-links { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-items: center; gap: 6px 6px; }
+// (each row no taller than the one row was with its padding; on touch a finger's height, in real css px. A short
+// screen's are as main's were, `_responsive.scss`)
+.menu-links .link { padding-block: 0; line-height: 1.1; }
+body.touch .menu-links .link { min-height: calc(28px / var(--ui, 1)); }
 
 .menu-right { position: relative; width: 290px; padding: 12px 14px 14px; display: grid; grid-template-rows: auto minmax(0, 1fr); background: linear-gradient(270deg, rgba(8,7,9,.94), rgba(8,7,9,.84)); }
 .tabs { display: flex; gap: 4px; border-bottom: 1px solid rgba($frame, .45); margin-bottom: 10px; }
