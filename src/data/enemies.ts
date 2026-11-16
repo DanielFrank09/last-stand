@@ -32,7 +32,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     life: 620, damage: 80, damageType: 'fire', speed: 3.0, radius: 1.0,
     range: 3.0, slamRadius: 3.4, windup: 1.05, recover: 0.8, cooldown: 2.6,
     throws: { what: 'lava', from: 7, reach: 16, windup: 0.85, recover: 0.6, cooldown: 3.2, flight: [0.85, 0.035], splash: [1.8, 0.75], pool: [1.5, 2.5, 0.3] },
-    cost: 5, score: 6, knockbackResist: 0.7,
+    cost: 5, score: 6, knockbackResist: 0.7, heft: 2.5,
   },
   colossus: {
     name: 'The Hollow Colossus', model: 'colossus', ai: 'boss',
@@ -40,7 +40,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     range: 4.2, slamRadius: 5.5, windup: 1.2, recover: 1.0, cooldown: 2.0,
     projectile: { speed: 12, radius: 0.5, color: 0xff6a2a, trail: 0x1a1210, core: 0.5, look: 'magma' },
     summon: 'imp',
-    cost: 0, score: 60, knockbackResist: 1, freezeResist: 0.7, boss: true, accent: 0xb070ff,
+    cost: 0, score: 60, knockbackResist: 1, freezeResist: 0.7, heft: 6, boss: true, accent: 0xb070ff,
   },
 
   // --- forest ---
@@ -69,7 +69,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     life: 660, damage: 76, damageType: 'physical', speed: 2.8, radius: 1.0,
     range: 3.0, slamRadius: 3.4, windup: 1.1, recover: 0.8, cooldown: 2.6,
     throws: { what: 'vine', from: 6, reach: 15, windup: 0.8, recover: 0.6, cooldown: 4, creep: [13, 0.6, 1.5] },
-    cost: 5, score: 6, knockbackResist: 0.75, accent: 0x9cff3a,
+    cost: 5, score: 6, knockbackResist: 0.75, heft: 2.5, accent: 0x9cff3a,
   },
   thornheart: {
     name: 'The Elder Thornheart', model: 'thornheart', ai: 'boss',
@@ -77,7 +77,7 @@ export const ENEMIES: Record<EnemyId, EnemyDef> = {
     range: 4.2, slamRadius: 5.5, windup: 1.2, recover: 1.0, cooldown: 2.0,
     projectile: { speed: 12, radius: 0.5, color: 0x6fd82a, trail: 0x2c4a1c, core: 0.55, look: 'spore' },
     summon: 'thornling',
-    cost: 0, score: 60, knockbackResist: 1, freezeResist: 0.7, boss: true, accent: 0x7aff50,
+    cost: 0, score: 60, knockbackResist: 1, freezeResist: 0.7, heft: 6, boss: true, accent: 0x7aff50,
   },
   // lobby target practice; never part of a wave
   dummy: {

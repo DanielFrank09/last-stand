@@ -7,7 +7,7 @@ import { BLOCK } from '../data/balance';
 import { SCHOOLS, schoolCss } from '../data/schools';
 import { input } from '../core/input';
 import { itemIconSVG } from './itemIcons';
-import { skillDamageHTML, skillHealHTML, skillWardHTML } from './skillDamage';
+import { skillDamageHTML, skillHealHTML, skillRamHTML, skillWardHTML } from './skillDamage';
 import type { ClassDef, Item, SkillDef, StatKey } from '../types';
 
 /** Tooltip content: HTML, accent color and optional footer hint. */
@@ -195,6 +195,7 @@ export function skillTooltip(raw: SkillDef, ofHero = true): () => TooltipContent
     else if (def.castTime >= 1) bits.push(`${def.castTime}s to charge`);
     if (def.cooldown) bits.push(`${def.cooldown}s cooldown`);
     html += `<div class="tt-foot">${bits.join(' · ')}</div>`;
+    html += skillRamHTML(def);
     if (def.both) html += `<div class="tt-foot">With no staff, put it on two keys: either casts it from one hand, both together from both hands, for ${def.both.cost} Energy / sec.</div>`;
     const alt = (id?: string) => (id ? G.player.known.get(id)?.def.name : undefined);
     if (def.needs === 'shield') {

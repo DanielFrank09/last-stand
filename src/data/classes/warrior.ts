@@ -80,9 +80,24 @@ const warrior: ClassDef = {
     },
     {
       key: '2', impl: 'bullRush', name: 'Bull Rush',
-      desc: 'Charge forward, sweeping up everything in your way and hurling it on ahead as you stop. Elites and bosses are driven back instead. Your other skills can be used as you charge, and the charge as they wind up or while you hold them.',
+      desc: 'Charge forward, sweeping up foes in your way and hurling them on ahead as you stop. Elites are driven back instead, and a boss stops you. The more you carry the slower you go, and a great pack stops you, stunned for a moment. Your other skills can be used as you charge, and the charge as they wind up or while you hold them. With a shield borne before you, it strikes a quarter harder and the stun is shorter.',
       tags: ['physical'], cost: 28, cooldown: 5, castTime: 0, overCast: true,
       damage: 120, range: 9, speed: 26,
+      // (#397: the foes it carries weigh on it, each its kind's heft, an elite twice that: each weight carried takes
+      // `slow` of its speed, and at `most` it stops; gear's All Damage % lightens the load by `gear` of its share,
+      // so the most it goes is the same whatever the gear. A boss is never carried: it stops the charge)
+      push: { most: 6, slow: 0.07, gear: 0.5 },
+      // (#560, the weight of the foes it met, a kill half: 5 common foes, two slammers, an elite slammer or a boss
+      // stagger him for 0.4 s at its stop, up to 0.7 s at 9, a pack it was stopped by and the dead it ploughed)
+      ram: { at: 5, full: 9, least: 0.4, most: 0.7, elite: 2, killed: 0.5 },
+      // (a shield's weight behind the charge, #398: its blows a quarter harder, as a shield's hero gives up a great
+      // weapon's weight and a second blade's pace for his block; braced behind it, the stun a quarter shorter)
+      styles: {
+        shield: {
+          damage: 150, styleNote: '+25% with a shield',
+          ram: { at: 5, full: 9, least: 0.3, most: 0.5, elite: 2, killed: 0.5 },
+        },
+      },
       icon: { glyph: '➹', color: '#ffb46a' },
     },
     {

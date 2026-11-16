@@ -3,9 +3,9 @@
 // charge is cast through them. Every foe is followed frame by frame until it has landed and stood, or its body lain
 // still: when the charge met it, how long it rode before the hero and how near his body, how it was let go (thrown,
 // how high and how far, or shoved on) and where it ended against where he stopped. A foe never met, one met and left
-// standing, one carried inside him, one that ended behind him or beside him, a living foe left unthrown and an elite
-// or a boss thrown are problems. (Thrown off the line as it was met, a foe the charge ran on past ended behind him
-// as he stopped.)
+// standing, one carried inside him, one that ended behind him or beside him, a living foe left unthrown, an elite
+// thrown and a boss moved at all are problems. (Thrown off the line as it was met, a foe the charge ran on past ended behind him
+// as he stopped.) Its blows with a shield and without are `rushBonus.ts`'s.
 import * as THREE from 'three';
 import { screenArea, type Fixture, type Lab, type Pictured, type Report } from './lab';
 import type { Enemy } from '../../../src/entities/enemy';
@@ -16,9 +16,13 @@ import { bindKnown, pressing, skillNamed } from './cast';
 import { foeKind } from './death';
 import { clearFacing, clearLane, waysOf, type LaneSize } from './lanes';
 import { castsWithRush } from './rushCasts';
+import { bonusOf } from './rushBonus';
+import { stunsOf } from './rushStun';
 
-/** The parts `lab rush` can run: the sets of foes the charge is cast through, and the skills cast with it. */
-export const RUSH_SCENARIOS = ['sets', 'casts'] as const;
+/** The parts `lab rush` can run: the sets of foes the charge is cast through, the skills cast with it, its blows
+ *  with a shield and without (#398), and the packs it's rammed through: what it carries and the stun it leaves him
+ *  in (`rushStun.ts`, #397, #560). */
+export const RUSH_SCENARIOS = ['sets', 'casts', 'bonus', 'stun'] as const;
 export type RushScenario = typeof RUSH_SCENARIOS[number];
 
 export interface RushOptions {
@@ -89,10 +93,18 @@ const PICTURE_MARGIN = 120;
 /** the foes pictured riding before the hero this long before the charge stops (s) */
 const RIDING_AT = 0.05;
 
+/** A blow a foe took: how much, and whether it was a crit. */
+export interface Blow {
+  amount: number;
+  crit: boolean;
+}
+
 /** A foe followed from the press: where it was placed, when it was met and how it went from there. */
 interface Followed {
   placed: Placed;
   foe: Enemy;
+  /** the blows it took */
+  blows: Blow[];
   /** whether the charge's blow has struck it, frames from the press to that (-1: never met), and whether it killed it
    *  there */
   struck: boolean;
@@ -142,12 +154,13 @@ async function foesOf(lab: Lab, set: FoeSet, at: THREE.Vector3, facing: number):
  *  other side, it's met all the same). */
 function followedOf(placed: Placed, foe: Enemy): Followed {
   const one: Followed = {
-    placed, foe, struck: false, metAt: -1, killed: false, carried: 0, nearest: Infinity,
+    placed, foe, blows: [], struck: false, metAt: -1, killed: false, carried: 0, nearest: Infinity,
     thrown: false, highest: 0, shoved: false, letGo: null, landed: null, end: foe.pos.clone(),
   };
   const takeDamage = foe.takeDamage.bind(foe);
   foe.takeDamage = (amount, info) => {
     one.struck = true;
+    one.blows.push({ amount, crit: Boolean(info?.crit) });
     return takeDamage(amount, info);
   };
   return one;
@@ -205,14 +218,18 @@ interface Cast {
   planted: boolean;
 }
 
-/** What a cast plants and pictures. */
+/** What a cast plants and pictures, and what's done to the hero once he's set up, before the foes rise. */
 interface CastPlan {
   canary: boolean;
   pictures: boolean;
+  before?: () => void;
 }
 
+/** The charge's first set of foes: living, on its line. */
+export const firstSet = (): FoeSet => SETS[0];
+
 /** The charge cast through `set` on a fresh set-up, every foe followed until it's still. */
-async function castThrough(lab: Lab, options: RushOptions, set: FoeSet, plan: CastPlan): Promise<Cast> {
+export async function castThrough(lab: Lab, options: RushOptions, set: FoeSet, plan: CastPlan): Promise<Cast> {
   G.arena.restoreProps();
   const fixture = fixtureOf(options);
   await lab.setup(fixture);
@@ -221,6 +238,7 @@ async function castThrough(lab: Lab, options: RushOptions, set: FoeSet, plan: Ca
   const skill = skillNamed('bullRush');
   hero.cooldowns.clear();
   hero.energy = hero.stats.maxEnergy;
+  plan.before?.();
   // (the way it was set up to face, which the set-up turns him to in every view)
   const facing = fixture.facing ?? hero.facing;
   const { forward, left } = waysOf(facing);
@@ -348,11 +366,15 @@ function foeProblems(cast: Cast, one: Followed): string[] {
   if (along < 0) problems.push(`${name}: ended ${metres(-along)} behind the hero`);
   else if (along < G.player.radius) problems.push(`${name}: ended beside the hero (${metres(along)} before him)`);
   if (one.killed) return problems;
+  // (a boss stands its ground, #397: struck, and the charge stops at it, never carried, shoved or thrown)
+  if (one.placed.boss) {
+    if (one.carried || one.thrown || one.shoved) problems.push(`${name}: moved by the charge (a boss stands)`);
+    return problems;
+  }
   if (!one.carried) problems.push(`${name}: met and left standing, not carried`);
   if (one.nearest < -INSIDE) problems.push(`${name}: carried ${centimetres(-one.nearest)} inside the hero`);
-  const stands = one.placed.elite || one.placed.boss;
-  if (stands && one.thrown) problems.push(`${name}: thrown (an elite or a boss is shoved on)`);
-  if (!stands && !one.thrown) problems.push(`${name}: not thrown`);
+  if (one.placed.elite && one.thrown) problems.push(`${name}: thrown (an elite is shoved on)`);
+  if (!one.placed.elite && !one.thrown) problems.push(`${name}: not thrown`);
   return problems;
 }
 
@@ -383,12 +405,26 @@ export async function rush(lab: Lab, options: RushOptions): Promise<Report> {
     problems.push(...sets.problems);
     canary.push(...sets.canary);
   }
+  if (asked.includes('bonus')) {
+    const bonus = await bonusOf(lab, options);
+    lines.push(...bonus.lines);
+    moments.push(...bonus.moments);
+    problems.push(...bonus.problems);
+    canary.push(...bonus.canary);
+  }
   if (asked.includes('casts')) {
     const casts = await castsWithRush(lab, options);
     lines.push(...casts.lines);
     moments.push(...casts.moments);
     problems.push(...casts.problems);
     canary.push(...casts.canary);
+  }
+  if (asked.includes('stun')) {
+    const stuns = await stunsOf(lab, options);
+    lines.push(...stuns.lines);
+    moments.push(...stuns.moments);
+    problems.push(...stuns.problems);
+    canary.push(...stuns.canary);
   }
   return { text: lines.join('\n'), problems: options.canary ? canary : problems, moments };
 }

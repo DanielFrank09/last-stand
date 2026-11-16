@@ -5,7 +5,8 @@ options every command takes) for its size.
 
 `range`: every joint of the hero against a body's ranges (`models/anatomy.ts`, as the dev builds' `watchBody`
 measures them), frame by frame, over standing, walking each way, attacking standing, and walks that change
-direction while he attacks (held or tapped) or runs (`--scenarios stand,walk,shoot,reverse,taps,run`), and with
+direction while he attacks (held or tapped) or runs, staggered 0.7 s as a charge into a crowd leaves him with W and
+the attack held through it (`stagger`, #560: the stagger's pose; `--scenarios stand,walk,shoot,reverse,taps,run,stagger`), and with
 `--skill` a skill cast standing and its end held (`cast`: its key held as long as the player would, `holdFor`, a
 channel through; pressed for a frame, Steel Tempest stopped at once), the weapons held `--gear`'s way throughout
 (`--weapon` the base): each angle past its range, on how many frames, its worst and where (for a leg, whether its

@@ -4,7 +4,10 @@
 // it). Each foe it meets is struck once and carried before the hero to the stop (entities/carry.ts), which lands
 // as a ground-shaking impact and throws them on ahead through the air, an elite or a boss driven on instead; the
 // fallen in its way, its kills among them, ride before it too (`ploughOf`) and slide on as it stops. Nothing ends
-// behind him or beside him, and the stop strikes nothing more.
+// behind him or beside him, and the stop strikes nothing more. What it carries weighs on it (#397, `SkillDef.push`):
+// each weight slows it and at its most it stops there; a boss is struck but never carried, and stops it. A charge that
+// rammed a crowd staggers him at its stop (#560, `SkillDef.ram`). Both are his own game's to judge, as it moves him
+// (combat/ram.ts).
 import * as THREE from 'three';
 import { G } from '../../state';
 import { carryEnemy, hitEnemy } from '../damage';
@@ -22,6 +25,7 @@ import type { InstantSkill, Needs } from './types';
 import type { Enemy } from '../../entities/enemy';
 import { addField } from '../../entities/corpse';
 import { ploughOf, throwPloughed, touchesAny } from '../../entities/carry';
+import { heftOf, loadOf, paceOf, stunOf } from '../ram';
 
 type Def = Needs<'damage' | 'range' | 'speed'>;
 const EMBER = 0xffb46a, DUST = 0x2a241c;
@@ -95,6 +99,9 @@ const skill: InstantSkill = {
     dir.normalize();
     const hit = new Set<Enemy>(), struck = new Set<Prop>();
     let dust = 0, scrape = 0, arrived = false, launched = false, steps = 0;
+    // (the weight of the foes it met, which stuns him at its stop past the skill's least; of the living it carries,
+    // which slows it; and whether a boss has stopped it)
+    let weight = 0, carried = 0, blocked = false;
     // (gathering for it: dust stirs round the feet)
     smokePuff(player.pos, { count: 4, color: DUST, alpha: 0.4, size: 0.6, sizeEnd: 1.6, speed: 1.2 });
 
@@ -160,16 +167,38 @@ const skill: InstantSkill = {
         // (struck through its middle along the charge: a kill thrown on ahead, its body carried on by the field, and
         // a foe it leaves standing carried before it to the stop)
         hitEnemy(e, def.damage, { by: player, skill: def, tags: def.tags, type: 'physical', from: p, blow: { dir, lift: 0.3 } });
-        carryEnemy(e, player, dir, Math.max(0, d.dur - d.t));
+        // (a boss stands: struck, never carried or shoved, and the charge stops at it)
+        if (e.boss) blocked = true;
+        else carryEnemy(e, player, dir, Math.max(0, d.dur - d.t));
+        if (def.ram) weight += heftOf(def.ram, e, !e.alive);
+        // (what rides before it now: not a kill, a boss, a training dummy, nor a partner's copy it never carried)
+        if (def.ram && e.carried?.by === player) carried += heftOf(def.ram, e, false);
         sparks(e.pos.x, e.height * 0.5, e.pos.z, 0xffc080, 16);
         shockwave(e.pos, { color: EMBER, intensity: 1.5, from: 0.2, to: 1.4, life: 0.25 });
         debris(e.pos, { count: 6, speed: 5 });
         addShake(0.2);
         sfx.bullHit();
       }
-      if (d && d.t >= d.dur) { arrived = true; arrive(p.clone(), dir); throwPloughed(player, dir); }
+      // (its load slows it from its own pace, and at its most, or at a boss, it stops where it is: his own game's)
+      if (def.push && player.local && d.t < d.dur) {
+        const pace = blocked ? 0 : paceOf(def.push, loadOf(def.push, carried, player.stats.damagePct));
+        if (pace <= 0) player.haltDash();
+        else {
+          d.vx = full.x * pace;
+          d.vz = full.z * pace;
+        }
+      }
+      if (d && d.t >= d.dur) {
+        arrived = true;
+        arrive(p.clone(), dir);
+        throwPloughed(player, dir);
+        // (his own game judges the stun and tells the partners': on theirs the foes it met are their own copies)
+        if (def.ram && player.local) player.stun(stunOf(def.ram, weight));
+      }
     } });
     myDash = player.dash;
+    // (its own speed, which its load takes shares of)
+    const full = { x: myDash?.vx ?? 0, z: myDash?.vz ?? 0 };
     let t = 0;
     addEffect({
       update(dt) {

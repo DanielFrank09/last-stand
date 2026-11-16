@@ -19,6 +19,7 @@ import { resolveProps } from '../world/collision';
 import { input, isDown, wasPressed } from '../core/input';
 import { flashHurt, addShake, cameraYaw, lookFacing, viewMode, viewSettled, seenFromArms } from '../core/renderer';
 import { floatText } from '../ui/floaters';
+import { dazedStars } from '../fx/dazed';
 import { particles, col } from '../fx/particles';
 import { sfx } from '../core/audio';
 import { SHINE } from '../core/materials';
@@ -77,6 +78,8 @@ const HAND_LIGHT = { below: 0.25, out: 0.2 };
 const WALL_GRIP = 0.18;
 /** how hard he slows walking up to the wall (m/s²: a comfortable stop, not `BRAKE`'s hardest) */
 const WALL_BRAKE = 10;
+/** how far over the top of his model a stun's stars circle (m), as a dazed foe's do over its crown */
+const STUN_STARS = 0.25;
 const angleOff = (a: number, b: number): number => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
 
 /** a shot from a bow (posed as one, not channelled): it looses the arrow on the string */
@@ -121,6 +124,10 @@ export type PlayerAction =
   | { t: 'che' }
   /** a hit it took, as its own game judged it (shown on the others) */
   | { t: 'hurt'; r: HitResult }
+  /** it was stunned for `d` s, as its own game judged it (a charge that rammed a crowd: `Player.stun`) */
+  | { t: 'stun'; d: number }
+  /** its dash stopped short where it was (a charge its load or a boss stopped: `Player.haltDash`) */
+  | { t: 'halt' }
   /** it fell (the host's run rules take it from there) */
   | { t: 'died' };
 let actionSink: ((a: PlayerAction) => void) | null = null;
@@ -256,7 +263,13 @@ export class Player {
   /** game time until which a broken guard keeps the shield down and the character staggered:
    *  it can move but not attack, cast or raise the shield */
   guardBroken = -1;
-  get staggered(): boolean { return this.guardBroken > G.time; }
+  /** game time until which he's stunned (`stun`: a charge that rammed a crowd, #560), and how long that stun is (s):
+   *  he can't move, attack or cast */
+  stunnedUntil = -1;
+  stunLong = 0;
+  get stunned(): boolean { return this.stunnedUntil > G.time; }
+  /** staggered: a broken guard (he can still move) or a stun (he can't), shown by the stagger's pose */
+  get staggered(): boolean { return this.guardBroken > G.time || this.stunned; }
   /** game time until which a vine holds his feet to the ground (`root`): he can't walk, but a dash tears him free */
   rootedUntil = -1;
   get rooted(): boolean { return this.rootedUntil > G.time; }
@@ -466,6 +479,7 @@ export class Player {
     this.hitT = 0;
     this.blockCd = 0;
     this.guardBroken = -1;
+    this.stunnedUntil = -1;
     this.lastLowEnergy = 0;
     this.cooldowns.clear();
     this.downed = false;
@@ -565,7 +579,7 @@ export class Player {
     let speed = this.stats.moveSpeed;
     if (this.casting && !this.casting.skill.def.freeMove) speed *= 0.45;
     if (this.channel) speed *= this.channel.skill.def.moveMult ?? 0.4;
-    if (this.rooted) speed = 0;
+    if (this.rooted || this.stunned) speed = 0;
     const yaw = cameraYaw(), cy = Math.cos(yaw), sy = Math.sin(yaw);
     const k = len ? speed * Math.min(1, len) / len : 0;
     let tx = (mx * cy + mz * sy) * k, tz = (mz * cy - mx * sy) * k;
@@ -756,6 +770,8 @@ export class Player {
     if (a.t === 'chh') { this.hands = a.h; return; }
     if (a.t === 'hurt') { this.applyHit(a.r); return; }
     if (a.t === 'died') { if (this.alive) this.die(); return; }
+    if (a.t === 'stun') { this.stun(a.d); return; }
+    if (a.t === 'halt') { this.haltDash(); return; }
     const s = this.known.get(a.s);
     // (a hidden partner's casts let go: away, banked or out of the hall of heroes, its spells were drawn all the same)
     if (!s || !this.alive || !this.obj.visible) return;
@@ -777,6 +793,42 @@ export class Player {
       if (a.h) this.hands = a.h;
       this.channel = { skill: s, key: a.k, state: (s.impl as ChannelSkill).start(this, s.def), t: 0 };
     }
+  }
+
+  /**
+   * Stunned for `seconds` (a Bull Rush that rammed a crowd, #560): what he casts or holds is let go, nothing stays
+   * aimed or queued, and he stands reeling in the stagger's pose with stars over his head until it passes, unable to
+   * move, attack or cast. His own game judges it, as it moves him, and tells the partners' (`stun`), whose copy of him
+   * reels as long.
+   */
+  stun(seconds: number): void {
+    if (!this.alive || seconds <= 0) return;
+    this.stunnedUntil = G.time + seconds;
+    this.stunLong = seconds;
+    if (this.channel) this.stopChannel();
+    this.casting = null;
+    this.queued = null;
+    this.endAim();
+    floatText(this.pos.x, 2.7, this.pos.z, 'Stunned', 'info', '#ffd27a');
+    sfx.bullDazed();
+    if (!this.local) return;
+    addShake(0.2);
+    actionSink?.({ t: 'stun', d: round2(seconds) });
+  }
+
+  /** The dash stopped short where he is (a Bull Rush its load or a boss stopped, #397): its hold after it as ever. His
+   *  own game decides it and tells the partners', whose copy's charge stops with it (`halt`). */
+  haltDash(): void {
+    const d = this.dash;
+    if (!d || d.t >= d.dur) return;
+    d.t = d.dur;
+    if (this.local) actionSink?.({ t: 'halt' });
+  }
+
+  /** How far through his stagger he is (0..1): a stun's, else a broken guard's. */
+  private staggerShare(): number {
+    if (this.stunned) return 1 - (this.stunnedUntil - G.time) / this.stunLong;
+    return 1 - (this.guardBroken - G.time) / BLOCK.guardBreak;
   }
 
   /** Rush along `dir` (normalized, on the ground) at `speed` for `dur` seconds; `step` runs every frame of it. Cast as
@@ -1131,7 +1183,7 @@ export class Player {
     this.phase = this.cycleOn(dt * cadence * pace, backwards ? -1 : 1);
     let action: ActionState | null = null;
     const d = this.dash, dashed = d ? { name: d.anim ?? 'charge', t: Math.min(1, d.t / (d.dur + d.hold)) } : null;
-    if (this.staggered) action = { name: 'stagger', t: 1 - (this.guardBroken - G.time) / BLOCK.guardBreak };
+    if (this.staggered) action = { name: 'stagger', t: this.staggerShare() };
     // (an open dash shows a skill cast as it runs, its own legs under it, and the action of a dash riding on it)
     else if (dashed && !(d?.open && (this.casting || this.channel || d.ride))) action = dashed;
     else if (d?.ride) action = { name: d.ride.anim ?? 'charge', t: Math.min(1, d.ride.t / d.ride.dur) };
@@ -1163,6 +1215,11 @@ export class Player {
     // (a hero not shown isn't posed: the lobby's hidden under the hall of heroes, a partner away in a run or banked;
     // each was posed all the same, his cloth draped, 1.2 to 1.6 ms a frame a hero: `lab coop`'s heroes' update)
     if (this.obj.visible) this.pose(dt, t, Math.min(1, speed / this.stats.moveSpeed), 1, side / this.stats.moveSpeed, action);
+    // (stunned: the stars a dazed foe has circling over his head, on every game's copy of him; not through his own
+    // eyes, where they'd circle round the camera)
+    if (this.stunned && this.obj.visible && !this.eyes) {
+      dazedStars(this.pos.x, this.obj.position.y + this.model.height + STUN_STARS, this.pos.z, t, this.stunnedUntil - G.time);
+    }
 
     // ambient motes around the offhand (the mage's arcana; none while hidden: as the hero selection screen hides the
     // lobby's mage, his rose among the hall's heroes where he stood)

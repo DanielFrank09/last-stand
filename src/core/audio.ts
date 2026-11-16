@@ -1194,6 +1194,20 @@ function bullLand(): void {
   v.start(); v.stopAt(v.t + 1.7);
 }
 
+/** The charge rammed into too great a crowd, and he's stunned by it (#560): the breath driven out of him in a grunt,
+ *  his weight rocking back onto his heels in a dull thud, and his gear settling. Earth and a body, so no metal rings
+ *  and nothing has a pitch: the grunt is noise swept down through a voice's band, driven. */
+function bullDazed(): void {
+  const v = voice(0, 0.3);
+  const grunt = v.sweep('bandpass', 700, 260, 0.32, 1.4);
+  v.loop(grunt); grunt.connect(drive(3.5)).connect(v.hit(0.32, 0.34, v.out, 0.012));
+  whump(v, 0.05, 0.4, 0.45);
+  thump(v, 0.05, 700, 110, 0.35, 0.5, v.out, 4);
+  const gear = v.c.createBiquadFilter(); gear.type = 'bandpass'; gear.frequency.value = 850; gear.Q.value = 0.6;
+  v.crackle(gear, 0.3); gear.connect(swellAt(v, 0.08, 0.2, 0.12, 0.5));
+  v.start(); v.stopAt(v.t + 1.1);
+}
+
 /** Power Strike gathered over `dur` s: strength drawn into the weapon. Air drawn in from both sides towards the
  *  middle, opening and swelling, a strain of dark noise under it, the grip creaking; in its last instants the weapon
  *  comes down, its air falling. No pitch climbs (the old `charge` was a saw gliding from 70 to 260 Hz). Returns a
@@ -1501,6 +1515,8 @@ export const sfx = {
   bullStep: guard((side: number) => { bullStep(side); }),
   bullHit: guard(() => { if (throttle('bullHit', 60)) return; bullHit(); }),
   bullLand: guard(() => { bullLand(); }),
+  /** stunned at its stop, having rammed a crowd */
+  bullDazed: guard(() => { bullDazed(); }),
   /** Power Strike gathered over `dur` s (returns its stop(), for a cast cut short), and landed (`size`: 1, less stopped short) */
   strikeCharge: guard((dur: number) => strikeGather(dur)),
   strike: guard((size: number) => { strikeLand(size); }),

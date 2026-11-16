@@ -42,7 +42,9 @@ function madeOf(def: SkillDef, hits: SkillHit[], stats: DerivedStats): string {
   // (a skill's hits all take its tags but Iron Bellow's, whose one hit takes a blow's)
   const bonuses = damageBonuses(stats, hits[0].tags ?? def.tags);
   const bases = hits.map((hit) => (hit.rate ? `${whole(hit.base * hit.rate)} a second` : `${whole(hit.base)} per ${hit.per}`));
-  const parts = [`Base ${bases.join(', ')}`];
+  // (what the weapons held add to its base, where its style says: Bull Rush's shield)
+  const style = def.styleNote ? ` (${def.styleNote})` : '';
+  const parts = [`Base ${bases.join(', ')}${style}`];
   if (bonuses.all) parts.push(`+${whole(bonuses.all)}% all damage`);
   if (bonuses.arcane) parts.push(`+${whole(bonuses.arcane)}% arcane`);
   if (bonuses.elemental) parts.push(`+${whole(bonuses.elemental)}% elemental`);
@@ -82,6 +84,25 @@ export function skillHealHTML(def: SkillDef, stats: DerivedStats | null): string
   const healed = def.heal + stats.maxLife * pct;
   const of = pct ? `: ${def.heal} and ${Math.round(pct * 100)}% of your ${whole(stats.maxLife)}` : '';
   return `<div class="tt-dmg"><div class="tt-hit">Restores <b class="tt-heal">${whole(healed)}</b> Health${of}</div></div>`;
+}
+
+/** A charge's trade-offs (`SkillDef.push`, `SkillDef.ram`, combat/ram.ts): how much it carries before it stops and
+ *  what each foe takes of its speed, and the stun ramming a crowd leaves the hero in, as the weapons held tune it (a
+ *  shield's is shorter). Empty for a skill that doesn't ram. */
+export function skillRamHTML(def: SkillDef): string {
+  const { push, ram } = def;
+  if (!push && !ram) return '';
+  const lines: string[] = [];
+  if (push) {
+    lines.push(`Each foe carried slows you by ${Math.round(push.slow * 100)}%, and ${push.most} of them stop you; a boss stops you`
+      + ' at once. Your All Damage lightens the load.');
+  }
+  if (ram) {
+    lines.push(`Ramming ${Math.ceil(ram.at)} foes or more staggers you as you stop for ${secs(ram.least)}, up to`
+      + ` ${secs(ram.most)}: you can't move, attack or cast. Elites, big foes and bosses count for more, a foe it`
+      + ' kills less.');
+  }
+  return `<div class="tt-foot tt-ram">${lines.join(' ')}</div>`;
 }
 
 /** A warding skill's figure for a hero of `stats`: the blows its ward absorbs now (Iron Bellow's, a share of his most

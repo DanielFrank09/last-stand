@@ -8,11 +8,14 @@
 // stats made again from his gear, and hovered again: its figure must follow. Last, each skill whose tooltip states
 // what it gives the hero (the draught's Health, Iron Bellow's ward) is cast: what it gave must be the figure. With the
 // canary, all damage and the hero's most Health are raised once the tooltip is read, as a tooltip behind a change
-// would be: the hits must be found above it, and what was given off it. (Issue #256: the tooltips showed the base
-// damage alone, not what the hero deals.)
+// would be: the hits must be found above it, and what was given off it. A skill whose damage a way of holding the
+// weapons tunes (Bull Rush's shield, #398; Rending Cleave's two-hander and blades) must state, held that way, its
+// figure as a one-hander states it times that tuning's share of its own; with the canary the shield's tuning is
+// dropped from the skill held so, as a bonus lost would be: its figure must be found short. (Issue #256: the
+// tooltips showed the base damage alone, not what the hero deals.)
 import { middleOf } from './lab';
 import type { Fixture, Lab, Report } from './lab';
-import type { DerivedStats, HeldStyle, SkillDef } from '../../../src/types';
+import type { DerivedStats, HeldStyle, SkillDef, StyleTuning } from '../../../src/types';
 import { G } from '../../../src/state';
 import { skillTooltip } from '../../../src/ui/tooltip';
 import { holdFor } from './cast';
@@ -23,9 +26,15 @@ export interface TooltipsOptions {
   fixture: Fixture;
   /** the skills cast: their keys, behaviours or names (every one dealing damage the hero can use when none) */
   skills: string[];
-  /** raise all damage once each tooltip is read: the hits must be found above what it states */
+  /** raise all damage once each tooltip is read: the hits must be found above what it states; and drop the shield's
+   *  tuning from a skill held so: its figure must be found short of the one-hander's times that tuning */
   canary: boolean;
 }
+
+/** the way of holding weapons each style's figure is held against: a one-hander alone, as a skill's own tuning is */
+const OWN_STYLE: HeldStyle = 'oneHanded';
+/** the style the canary drops a skill's tuning from */
+const DROPPED_STYLE: HeldStyle = 'shield';
 
 /** the hero's modifiers while measured, one of every kind, so a tooltip leaving one out is caught */
 const MODIFIERS: Partial<DerivedStats> = {
@@ -182,14 +191,34 @@ function skillsOf(options: TooltipsOptions): SkillDef[] {
   return usable.filter((def) => options.skills.some((wanted) => named(def, wanted)));
 }
 
-/** Each damage skill held `gear`'s way, its tooltip read and cast at its foes. */
-async function gearRound(lab: Lab, options: TooltipsOptions, gear: HeldStyle | undefined): Promise<Found> {
+/** The class's own entry for `def` (its tuning for each style with it), as its data has it. */
+function ownDefOf(def: SkillDef): SkillDef | undefined {
+  return G.player.cls.skills.find((skill) => skill.impl === def.impl);
+}
+
+/** With the canary, `def`'s damage tuning for the style held dropped from the skill the hero knows, as a bonus lost
+ *  would be: the skill as its class's own entry has it (as it was, for another style or a skill with no tuning). */
+function dropTuning(def: SkillDef, gear: HeldStyle | undefined): SkillDef {
+  const own = ownDefOf(def);
+  const known = G.player.known.get(def.impl);
+  if (gear !== DROPPED_STYLE || !own?.styles?.[gear]?.damage || !known) return def;
+  known.def = own;
+  return own;
+}
+
+/** Each damage skill held `gear`'s way, its tooltip read and cast at its foes; each one's first figure per hit noted
+ *  by its name in `figures`. */
+async function gearRound(
+  lab: Lab, options: TooltipsOptions, gear: HeldStyle | undefined, figures: Map<string, number>,
+): Promise<Found> {
   const fixture: Fixture = { ...options.fixture, gear };
   await lab.setup(fixture);
   const found: Found = { lines: [gear ?? G.player.cls.id], problems: [] };
-  for (const def of skillsOf(options)) {
+  for (const held of skillsOf(options)) {
+    const def = options.canary ? dropTuning(held, gear) : held;
     setModifiers();
     const read = readTooltip(def);
+    if (read.kinds.length) figures.set(def.name, read.kinds[0].high);
     const lasting = read.kinds.some((kind) => kind.every) && !def.channel ? def.duration ?? 0 : 0;
     const plant = options.canary ? raiseDamage : null;
     const cast = await castAt(lab, fixture, def.name, (skill) => holdFor(skill.def), plant, undefined, lasting);
@@ -197,6 +226,45 @@ async function gearRound(lab: Lab, options: TooltipsOptions, gear: HeldStyle | u
     const judgedCast = judged(name, read, cast);
     found.lines.push(`  ${def.name}`, ...judgedCast.lines);
     found.problems.push(...judgedCast.problems);
+  }
+  return found;
+}
+
+/** A style's figure for a skill against what its tuning says: the one-hander's times the tuning's share of its own. */
+interface StyleFigure {
+  name: string;
+  style: HeldStyle;
+  figure: number;
+  /** the tuning's damage as a share of the skill's own */
+  share: number;
+  wanted: number;
+}
+
+/** Each skill whose damage a style tunes, its figure held that way against the one-hander's times that tuning's
+ *  share of its own damage: the figures as lines, and those off as problems. */
+function styleFigures(figures: Map<HeldStyle, Map<string, number>>): Found {
+  const own = figures.get(OWN_STYLE);
+  const found: Found = { lines: [], problems: [] };
+  if (!own) return found;
+  const compared: StyleFigure[] = [];
+  for (const def of G.player.cls.skills) {
+    const base = own.get(def.name);
+    for (const [style, tuning] of Object.entries(def.styles ?? {}) as [HeldStyle, StyleTuning][]) {
+      const figure = figures.get(style)?.get(def.name);
+      if (!tuning.damage || !def.damage || base === undefined || figure === undefined) continue;
+      const share = tuning.damage / def.damage;
+      compared.push({ name: def.name, style, figure, share, wanted: base * share });
+    }
+  }
+  if (!compared.length) return found;
+  found.lines.push('styles');
+  for (const one of compared) {
+    const said = `${one.name} (${one.style}): states ${one.figure} at most`;
+    found.lines.push(`  ${said}, its tuning's share of the one-hander's ${whole(one.wanted)}`);
+    // (each figure is whole, half a point each way: the one-hander's off by that times the share, this one's by that)
+    if (Math.abs(one.figure - one.wanted) > ROUNDING * (1 + one.share)) {
+      found.problems.push(`${said}, not its tuning's share of the one-hander's ${whole(one.wanted)}`);
+    }
   }
   return found;
 }
@@ -333,11 +401,17 @@ export async function tooltips(lab: Lab, options: TooltipsOptions): Promise<Repo
   const gear = await followsGear(lab, options);
   const lines = [...gear.lines];
   const problems = [...gear.problems];
+  const figures = new Map<HeldStyle, Map<string, number>>();
   for (const style of gearsOf(options.fixture)) {
-    const round = await gearRound(lab, options, style);
+    const stated = new Map<string, number>();
+    if (style) figures.set(style, stated);
+    const round = await gearRound(lab, options, style, stated);
     lines.push(...round.lines);
     problems.push(...round.problems);
   }
+  const styled = styleFigures(figures);
+  lines.push(...styled.lines);
+  problems.push(...styled.problems);
   const given = await givenRound(lab, options);
   lines.push(...given.lines);
   problems.push(...given.problems);
@@ -347,6 +421,11 @@ export async function tooltips(lab: Lab, options: TooltipsOptions): Promise<Repo
   const caught = problems.some((problem) => problem.includes('outside what it states'));
   lines.push(`canary: ${caught ? 'the raised damage caught' : 'the raised damage went unseen'}`);
   if (!caught) missed.push('the canary\'s raised damage went unseen');
+  if (styled.lines.length && figures.has(DROPPED_STYLE)) {
+    const dropped = problems.some((problem) => problem.includes(`(${DROPPED_STYLE}): states`));
+    lines.push(`canary: the ${DROPPED_STYLE}'s tuning dropped ${dropped ? 'caught' : 'went unseen'}`);
+    if (!dropped) missed.push(`the canary's ${DROPPED_STYLE} tuning dropped went unseen`);
+  }
   if (given.lines.length > 1) {
     const raised = problems.some((problem) => / gave a .* not the /.test(problem));
     lines.push(`canary: ${raised ? 'the raised Health caught' : 'the raised Health went unseen'}`);

@@ -595,6 +595,10 @@ takes and the options every command takes. [`AGENTS.md`](AGENTS.md) has the lab'
   ward's). `--canary` raises all damage and his most Health by 50% once each tooltip is read, as a tooltip behind a
   change would be: its hits must be found above what it states, and what was given off it. On `--ab` against a
   commit before it, every tooltip states no damage.
+  A skill whose damage a way of holding the weapons tunes (`styles`: Bull Rush's shield, #398; Rending Cleave's
+  two-hander and blades) must state, held that way, the one-hander's figure times its tuning's share of its own
+  damage (each figure whole: half a point each way); `--canary` also drops the shield's tuning from the skill the
+  hero knows as he holds a shield, as a bonus lost would be, which must be found short.
   (Issue #256: the tooltips showed the base damage alone, not what the hero deals with his gear.)
 - `spin`: mouse look turned one way for 240 frames in each close view (`--views third,first`), then the other way,
   24 px a frame, the pointer locked as the player's click takes it (`page/spin.ts`; `src/core/input.ts` `lookMove`).
