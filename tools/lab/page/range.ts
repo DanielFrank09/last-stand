@@ -20,6 +20,7 @@ import type { LowerGrip } from '../../../src/types';
 import { LegTrace, traceSpanOf } from './legTrace';
 import { bindKnown, holdFor, pressing, skillNamed } from './cast';
 import { TipMoves } from './tipMoves';
+import { FlaskMoves } from './flaskMoves';
 import { CANARY_CAUGHT as WEAPON_CAUGHT, EDGE_OFF_MOST, WeaponFloor, bladeCanary, weaponCanary } from './weaponFloor';
 import { BODY_CANARY_CAUGHT, WeaponBody, bodyCanary } from './weaponBody';
 import { WeaponOnFoe, foeCanary } from './weaponOnFoe';
@@ -295,6 +296,8 @@ export interface RangeReport {
     foeAside?: boolean;
     /** in a cast: whether the tip's path, one fast point moved aside, read as off its line (it must) */
     pathAside?: boolean;
+    /** in a cast with a flask out: whether its arm's elbow, moved far in a frame, read as its fastest move (it must) */
+    flaskJump?: boolean;
     /** the right elbow moved into the chest, read as the arms in the body (`caught ...` or `missed ...`) */
     armsIn?: string;
     /** a hand at the left thigh's middle, read as an arm in the legs (`caught ...` or `missed ...`) */
@@ -419,6 +422,7 @@ async function runScenario(
   const ankles = [lab.joints.ankleL, lab.joints.ankleR];
   const last = ankles.map((ankle) => ankle.getWorldPosition(new THREE.Vector3()));
   const tip = new TipMoves(scenario.name);
+  const flask = new FlaskMoves(scenario.name);
   const floor = new WeaponFloor(scenario.name);
   const through = new WeaponBody(scenario.name);
   const pinned = new ArmsPinned(scenario.name, ARM_LIMITS);
@@ -452,6 +456,8 @@ async function runScenario(
     }
     noteGrip(run.grip, lab.model.lowerGrip, `${run.frame}${momentIn(lab)}`);
     tip.observe(lab, `${run.frame}${momentIn(lab)}`);
+    flask.observe(lab, `${run.frame}${momentIn(lab)}`);
+    if (report.canary && report.canary.flaskJump !== true && flask.describe()) report.canary.flaskJump = flask.canary();
     floor.observe(lab, `${run.frame}${momentIn(lab)}`);
     onFoe?.observe(lab, `${run.frame}${momentIn(lab)}`);
     if (path?.observe(lab, `${run.frame}${momentIn(lab)}`)) {
@@ -524,7 +530,7 @@ async function runScenario(
   cost.stop();
   if (planted && report.canary) report.canary.poseSlow = cost.tooSlow();
   if (!planted && cost.tooSlow()) report.slowPose.push(`${scenario.what}: ${cost.describe()}`);
-  if (options.frames) listed.push(...tip.listed, ...floor.listed, ...through.listed, ...pinned.listed);
+  if (options.frames) listed.push(...tip.listed, ...flask.listed, ...floor.listed, ...through.listed, ...pinned.listed);
   const tipLine = tip.describe();
   const fastest = `fastest ankle ${(run.fastest * 100).toFixed(1)} cm a frame (${run.fastestAt})`
     + (tipLine ? `; ${tipLine}` : '');
@@ -539,6 +545,8 @@ async function runScenario(
   if (nearFloor && floor.bladeAcross()) report.bladeAcross.push(`${scenario.what}: ${nearFloor}`);
   const inBody = through.describe();
   if (inBody) report.lines.push(`  ${inBody}`);
+  const flaskLine = flask.describe();
+  if (flaskLine) report.lines.push(`  ${flaskLine}`);
   const pathLine = path?.describe();
   if (pathLine) report.lines.push(`  ${pathLine}`);
   if (run.pathMoment) report.moments.push(run.pathMoment);
@@ -697,6 +705,10 @@ export async function range(lab: Lab, options: RangeOptions): Promise<RangeRepor
     if (poseSlow !== undefined) {
       report.lines.push(`canary, one frame's pose made 40 ms slower: ${poseSlow ? 'caught' : 'MISSED'}`);
     }
+    const flaskJump = report.canary.flaskJump;
+    if (flaskJump !== undefined) {
+      report.lines.push(`canary, the flask's arm's elbow moved far in a frame: ${flaskJump ? 'caught' : 'MISSED'}`);
+    }
     const pathAside = report.canary.pathAside;
     if (pathAside !== undefined) {
       report.lines.push(`canary, a point of the tip's path moved aside: ${pathAside ? 'caught' : 'MISSED'}`);
@@ -753,8 +765,10 @@ export function missedRangeCanary(report: RangeReport): string[] {
   const blade = turned !== undefined && turned <= EDGE_OFF_MOST
     ? ['range: the canary (the weapon turned a quarter round its grip) was missed']
     : [];
+  const jumpMissed = report.canary.flaskJump === false;
+  const jump = jumpMissed ? ["range: the canary (the flask's arm's elbow moved far in a frame) was missed"] : [];
   const slow = report.canary.poseSlow === false ? ["range: the canary (one frame's pose made slower) was missed"] : [];
-  return [...missed, ...weapon, ...body, ...wrist, ...pinned, ...aside, ...path, ...arm, ...leg, ...blade, ...slow];
+  return [...missed, ...weapon, ...body, ...wrist, ...pinned, ...aside, ...path, ...arm, ...leg, ...blade, ...jump, ...slow];
 }
 
 /** Each scenario in which a two-hander was let go of, as a problem: nothing it runs flings the arms apart. */

@@ -21,7 +21,7 @@ import { fitArm } from './armIK';
 import { bodyShape } from './anatomy';
 import { curve, PoseFade, type Keys } from './motion';
 import { onTunic, tunicFront, tunicCutSteps, armholeEdge, neckHem, necklineBack, outOfTunic, tunicNormal, SetInShoulders, ARMHOLE, WAIST, type ArmBlend } from './tunic';
-import { buildFlask, drink, drinkUp, holdFlask, type DrinkHold } from './flask';
+import { buildFlask, drink, drinkUp, holdFlask } from './flask';
 import { HoodCloth, evenly, spaced } from './hood';
 import { Dye } from './dye';
 import { ItemGlows } from './itemGlow';
@@ -198,8 +198,6 @@ const FREE_HAND = new Set(['cast', 'summon', 'channel', 'slam', 'buff', 'drink']
 const HAND_GLOW = { color: new THREE.Color(0x5dffa8).multiplyScalar(1.8), breathe: 0.3, rate: 2.2, body: 0.1, eyes: 0.35 };
 const HAND_HANG = Math.PI / 2;
 const TAIL: Record<string, number> = { cast: 0.35, summon: 0.35, slam: 0.4, buff: 0.5 }, TAIL_OUT: Record<string, number> = { cast: 0.45, summon: 0.45, slam: 0.6, buff: 0.5 };
-/** drinking: the flask raised straight up before the chin, the elbow down and forward (the bell sleeve falls back off the forearm) */
-const DRINK: DrinkHold = { wrist: new THREE.Vector3(0.07, -0.16, 0.14), tipped: new THREE.Vector3(0.08, 0.08, 0.19), pole: new THREE.Vector3(0.35, -1, 0.5), tippedPole: new THREE.Vector3(0.6, -0.4, 1) };
 /** braced for Void Lance, how far the staff is slid up through the fist (rig units), its foot kept on the ground as
  *  he sinks into the stance: unslid, it stood 7 cm into the floor through the hold. (Turned upright in the fist as
  *  well, the fist closed round it another way and kept it after the cast, the staff 6 cm into the floor as he stood.) */
@@ -1320,7 +1318,7 @@ export function* mageSteps(): ModelSteps {
         }
       } else if (a.name === 'drink' && !fp) {
         // the healing draught: taken from the belt and drunk (models/flask.ts)
-        flaskWant = drink(j, k, mouth, DRINK, handL, flask); drinkLift = drinkUp(k);
+        flaskWant = drink(j, k, mouth, handL, flask, fp ? undefined : body); drinkLift = drinkUp(k);
       } else if (a.name === 'summon' && !fp) {
         const w = ramp(k, 0, 0.15), rise = ramp(k, 0, 0.45) * (1 - ramp(k, 0.5, 0.62)), pull = ramp(k, 0.5, 0.62);
         j.shoulderL.rotation.x = lerp(j.shoulderL.rotation.x, curve(SU_ARM_X, k), w); j.shoulderL.rotation.z = lerp(j.shoulderL.rotation.z, curve(SU_ARM_Z, k), w);

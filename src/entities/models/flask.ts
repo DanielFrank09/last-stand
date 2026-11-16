@@ -3,25 +3,48 @@
 // the head), the head tipping back to drink, then put away. Shared by the heroes; each model hangs the flask on its
 // free hand's joint, closes the fist round it (`holdFlask`) and puts a mouth point on its head.
 import * as THREE from 'three';
-import { reachArm, type Joints } from './rig';
+import type { Joints } from './rig';
 import { curve, type Keys } from './motion';
-import { hold, fistReach, seatHeld, type Hand } from './hands';
+import { hold, fistReach, fistTurn, seatHeld, SLANT, type Hand } from './hands';
+import { solveArm } from './armIK';
+import { GRIPPED_FLEXION, wristTurn, type BodyShape } from './anatomy';
+import { tunable } from '../../core/tuning';
 import type { MaterialKit } from '../../types';
 
 const _t = new THREE.Vector3(), _f = new THREE.Vector3(), _m = new THREE.Vector3(), _w = new THREE.Vector3(), _d = new THREE.Vector3();
-const _p = new THREE.Vector3(), _up = new THREE.Vector3(), _a = new THREE.Vector3(), _b = new THREE.Vector3();
-const _q = new THREE.Quaternion(), _r = new THREE.Quaternion();
-const Y = new THREE.Vector3(0, 1, 0);
+const _p = new THREE.Vector3(), _up = new THREE.Vector3(), _a = new THREE.Vector3(), _t0 = new THREE.Vector3(), _f0 = new THREE.Vector3(), _p0 = new THREE.Vector3();
+const _q = new THREE.Quaternion(), _r = new THREE.Quaternion(), _e = new THREE.Quaternion(), _fist = new THREE.Quaternion(), _sl = new THREE.Quaternion();
+const Y = new THREE.Vector3(0, 1, 0), Z = new THREE.Vector3(0, 0, 1);
 
-/** where a model drinks from (as a man drinks from a flask held by its neck, the owner's reference photographs: the bulb
- *  some 35 degrees below the lips at the first sip, some 40 up and forward of them as it's drunk): where the flask's base is from the mouth (the head's frame: x left, y up, z forward; m:
- *  its neck points from there at the lips), as it comes up and as it drinks, and where the elbow points (the chest's frame) */
-export interface DrinkHold { wrist: THREE.Vector3; /** the base as it drinks: above and before the mouth, so the neck points down into the lips and the bottom is tipped up */ tipped: THREE.Vector3; pole: THREE.Vector3; /** where the elbow points as it drinks: up and forward, the upper arm about level (low, as at the sip, the forearm stood up before the face) */ tippedPole: THREE.Vector3 }
+/**
+ * How the heroes drink, the left hand's (a right hand's mirrored), as a man drinks from a flask held by its neck (the
+ * owner's reference photographs: the bulb some 35 degrees below the lips at the first sip, some 40 up and forward of
+ * them as it's drunk).
+ * - `sip`, `tipped`: where the flask's base is from the mouth (the head's frame: x left, y up, z forward; m: its neck
+ *   points from there at the lips), as it comes up and as it drinks: above and before the mouth, so the neck points
+ *   down into the lips and the bottom is tipped up.
+ * - `pole`, `tippedPole`: where the elbow would rather point (the chest's frame). At the sip out to the side and up,
+ *   the forearm coming in across to the mouth: a fist holds a neck across its palm, so a neck that points up at the
+ *   lips needs the forearm square to it, and the only such places an elbow can be are out to the side (the other is
+ *   inside the chest). Straight down before the chest, the forearm ran up along the neck: the wrist was bent 100 to
+ *   150 degrees round it and the forearm turned 60 to 75 past its end, #464. As it drinks, up and forward, the upper
+ *   arm about level.
+ * - `keep`: what the pole is worth against the ranges (armIK.ts `ArmGoal.keep`), `roll`: how far the fist may turn
+ *   about the neck from the way the pole has it (rad).
+ * - `carry`: the wrist as the fist carries the flask at the hip, out of the pouch and back to it (degrees: the
+ *   forearm's turn, the wrist's flexion and its bend to the thumb's side), and `carrySlant` the neck's slant across
+ *   that palm (rad), so the neck stands up out of the fist. (Stood up by the wrist alone, it was bent 28 to 44 degrees
+ *   to the thumb's side, past its 20.)
+ * - `arc`: how far the flask's way from the hip to the lips bows out before the chest (m), `take`: the share of the
+ *   lift over which the arm goes from the hip's pose to the one solved for the flask on that way.
+ */
+const DRINK = tunable('drink', {
+  sip: [0.07, -0.16, 0.14], tipped: [0.08, 0.08, 0.19], pole: [1, -0.2, 0.5], tippedPole: [0.6, -0.4, 1], keep: 120, roll: 1.2,
+  carry: [30, 0, 10], carrySlant: 0.35, arc: 0.04, take: 0.25,
+});
 
 /** the neck's radius where the fist closes round it, and how far the flask's mouth is from there, up its length */
 const NECK_R = 0.019, MOUTH_UP = 0.047;
-/** how many times `drink` reaches for the flask's place, each from the forearm the last left */
-const REACHES = 6;
 
 /** where the flask's body's middle is from where the fist holds the neck, the glass's radius and the draught's (inside
  *  it), and how high the draught stands over the body's middle (m: three-quarters full) */
@@ -88,12 +111,11 @@ export function buildFlask(kit: MaterialKit): THREE.Group {
   add(new THREE.CylinderGeometry(0.0145, 0.0125, 0.024, 10), stopper, 0.055, cork);
   add(new THREE.TorusGeometry(0.0128, 0.0016, 4, 14).rotateX(Math.PI / 2), twine, 0.049, cork);
   for (const a of [0, Math.PI / 2]) add(new THREE.TorusGeometry(0.0145, 0.0012, 4, 12, Math.PI).rotateY(a), twine, 0.055, cork);
-  g.userData.aim = new THREE.Vector3();
+  g.userData.slant = 0;
   g.userData.lift = 0;
   g.userData.lifted = 0;
   g.userData.wrist = new THREE.Vector3();
   g.userData.grip = new THREE.Vector3();
-  g.userData.up = new THREE.Vector3();
   g.userData.draught = draught;
   // (the flask's mouth, which `drink` puts at the lips: the lab measures how far off them it lands)
   const lip = new THREE.Object3D();
@@ -117,93 +139,112 @@ const TIP: Keys = [[0, 0], [0.36, 0], [0.45, 1], [0.54, 1], [0.66, 0]];
 /** the flask out of the pouch */
 const OUT: Keys = [[0, 0], [0.13, 0], [0.18, 1], [0.81, 1], [0.86, 0]];
 
+/** the hand in the fist that carries the flask (0: its own pose's turn), over the cast: turned to it as it goes to the belt, and back as it leaves it */
+const FIST: Keys = [[0, 0], [0.12, 1], [0.89, 1], [1, 0]];
+
 /**
- * The drinking move on the left arm (`k` 0..1 of the cast) over the pose so far: the hand to the left hip (to
- * hang a weapon there and take the flask from the pouch), up to the lips, the head tipping back as it drinks,
- * down to the hip again (the flask stowed, a weapon drawn). `mouth` is a point just before the lips on the head,
- * `h` the hand that holds `flask`. Returns how far the flask is out (0..1) for the model to show it.
+ * The drinking move on the free arm (`h`'s; `k` 0..1 of the cast) over the pose so far: the hand to its hip (to hang a
+ * weapon there and take the flask from the pouch), up to the lips, the head tipping back as it drinks, down to the hip
+ * again (the flask stowed, a weapon drawn). `mouth` is a point just before the lips on the head, `h` the hand that
+ * holds `flask`, `body` the body the arm keeps out of (none through the eyes). Returns how far the flask is out
+ * (0..1) for the model to show it.
+ *
+ * The arm at the lips is solved within a body's ranges (armIK.ts) for the fist it ends in: the flask's neck is a
+ * handle fixed at the lips, the fist free to turn about it and to hold it diagonally across the palm, as a two-hander's
+ * lower hand is solved. The hand joint is given the fist's turn (so the model's own fitting of the arm after it keeps
+ * it), which `holdFlask` draws. (Reached with a pole alone and the fist turned round the neck after, nothing held the
+ * forearm's turn or the wrist to their ranges, #464.)
  */
-export function drink(j: Joints, k: number, mouth: THREE.Object3D, how: DrinkHold, h: Hand, flask: THREE.Object3D): number {
+export function drink(j: Joints, k: number, mouth: THREE.Object3D, h: Hand, flask: THREE.Object3D, body?: BodyShape): number {
+  const left = h.s > 0, sh = left ? j.shoulderL : j.shoulderR, el = left ? j.elbowL : j.elbowR, hd = left ? j.handL : j.handR;
   const hip = curve(HIP, k), e = curve(LIFT, k), tip = curve(TIP, k);
-  // to the belt on the left hip
-  j.shoulderL.rotation.x += 0.35 * hip; j.shoulderL.rotation.z += 0.12 * hip; j.elbowL.rotation.x += -0.6 * hip;
+  // to the belt on the hip
+  sh.rotation.x += 0.35 * hip; sh.rotation.z += 0.12 * hip; el.rotation.x += -0.6 * hip;
   // the head and shoulders tip back as it drinks
   j.neck.rotation.x += -0.3 * tip; j.head.rotation.x += -0.2 * tip; j.spine.rotation.x += -0.08 * tip;
   flask.userData.lift = e;
   // (kept for the lab: `lift` is spent by `holdFlask` each frame)
   flask.userData.lifted = e;
+  // the fist as it carries the flask by the hip: the forearm half turned, the wrist near straight, the neck slanted
+  // across the palm to stand up out of it; the hand turned to it as it goes to the belt, and back as it leaves it
+  const [pron, flex, rad] = DRINK.carry, fist = curve(FIST, k);
+  hd.quaternion.slerp(wristTurn(pron, flex, rad, left, _fist), fist);
+  let slant = h.s * DRINK.carrySlant * fist;
   if (e > 0) {
     const sc = j.root.scale.x;
     j.root.updateMatrixWorld(true);
-    // the flask's base where the model holds it from (`how`), below the lips as it comes up and over them as it
-    // drinks, its neck pointing from there at the lips and its mouth on them
+    // from the hip: where that fist has the neck, the way it points, and where the elbow is
+    hd.getWorldQuaternion(_q).multiply(_sl.setFromAxisAngle(Z, -slant));
+    _f0.set(-h.s, 0, 0).applyQuaternion(_q);
+    fistReach(h, _f0, _up.set(0, 1, 0).applyQuaternion(_q), NECK_R, _d, slant);
+    hd.getWorldPosition(_t0).add(_d);
+    el.getWorldPosition(_p0).sub(sh.getWorldPosition(_a)).normalize();
+    // to the lips: the flask's base where it's held from, below them as it comes up and over them as it drinks, its
+    // neck pointing from there at the lips and its mouth on them
     mouth.getWorldPosition(_m);
     j.head.getWorldQuaternion(_q);
-    _w.lerpVectors(how.wrist, how.tipped, tip);
+    _w.fromArray(DRINK.sip).lerp(_p.fromArray(DRINK.tipped), tip);
+    _w.x *= h.s;
     _f.copy(_w).negate().applyQuaternion(_q).normalize();
-    (flask.userData.aim as THREE.Vector3).copy(_f);
     _t.copy(_m).addScaledVector(_f, -MOUTH_UP * sc);
-    // the wrist where the fist round the flask's neck has it there: the hand's length along the forearm, first
-    // taken as the line to the shoulder, then as the arm that reaches lies, again till it settles (the neck running
-    // near the forearm's line at the sip, the fist's turn round it swings far for a small change in the forearm: from
-    // the arm two reaches back, the fist closed 13 cm off the lips)
-    j.shoulderL.getWorldPosition(_a);
-    _up.copy(_a).sub(_t).normalize();
-    _r.copy(j.shoulderL.quaternion);
-    const e0 = j.elbowL.rotation.x;
-    for (let pass = 0; pass < REACHES; pass++) {
-      fistReach(h, _f, _up, NECK_R, _d);
-      _w.copy(_t).sub(_d);
-      // (where it wants the wrist and the grip, world: the lab reads how far from them they land)
-      (flask.userData.wrist as THREE.Vector3).copy(_w);
-      (flask.userData.grip as THREE.Vector3).copy(_t);
-      (flask.userData.up as THREE.Vector3).copy(_up);
-      j.chest.worldToLocal(_w);
-      reachArm(j.shoulderL, j.elbowL, j.P.upperL, j.P.foreL, _w, _p.lerpVectors(how.pole, how.tippedPole, tip));
-      j.root.updateMatrixWorld(true);
-      j.elbowL.getWorldPosition(_a);
-      j.handL.getWorldPosition(_b);
-      _up.copy(_a).sub(_b).normalize();
-    }
-    // (blended from the pose's own turn: the IK's is copied first, slerp would read the one it writes)
-    _q.copy(j.shoulderL.quaternion);
-    j.shoulderL.quaternion.copy(_r).slerp(_q, e);
-    j.elbowL.rotation.x = e0 + (j.elbowL.rotation.x - e0) * e;
+    _p.fromArray(DRINK.pole).lerp(_w.fromArray(DRINK.tippedPole), tip);
+    _p.x *= h.s;
+    j.chest.getWorldQuaternion(_q);
+    _p.applyQuaternion(_q).normalize();
+    // the hand leads the flask up a line from the one to the other, bowed out before the chest, the neck turning
+    // from the one way to the other and the elbow following it out (the arm turned joint by joint from the hip's to
+    // the lips', the elbow went up and out first and the hand hung from it)
+    _t.lerpVectors(_t0, _t, e).addScaledVector(_w.set(0, 0, 1).applyQuaternion(_q), DRINK.arc * sc * Math.sin(Math.PI * e));
+    _f.lerpVectors(_f0, _f, e).normalize();
+    _p.lerpVectors(_p0, _p, e).normalize();
+    // the fist round the neck there with the hand's length towards where the elbow would rather be, and the arm that
+    // holds it so within its ranges
+    _up.copy(_a).addScaledVector(_p, j.P.upperL * sc).sub(_t).normalize();
+    fistReach(h, _f, _up, NECK_R, _d);
+    fistTurn(h, _f, _up, _q);
+    _r.copy(sh.quaternion); _e.copy(el.quaternion); _fist.copy(hd.quaternion);
+    const fit = solveArm(j, left, { wrist: _w.copy(_t).sub(_d), hand: _q, roll: { axis: _f, range: DRINK.roll, at: _t }, pole: _p, keep: DRINK.keep, body, slant: SLANT, slantOnHandle: true, glide: 1, flexion: GRIPPED_FLEXION });
+    // (where it has the wrist and the grip, world: the lab reads how far from them they land)
+    j.root.updateMatrixWorld(true);
+    hd.getWorldPosition(flask.userData.wrist as THREE.Vector3);
+    (flask.userData.grip as THREE.Vector3).copy(_t);
+    // (taken up from the hip's arm and fist over the lift's first part: the solver holds the neck its own way of the
+    // ranges' many. It leaves the hand joint under the slanted fist: the fist's own turn here)
+    const w = smooth(e / DRINK.take);
+    sh.quaternion.copy(_r.slerp(sh.quaternion, w));
+    el.quaternion.copy(_e.slerp(el.quaternion, w));
+    hd.quaternion.copy(_fist.slerp(hd.quaternion.multiply(_sl.setFromAxisAngle(Z, fit.slant)), w));
+    slant += (fit.slant - slant) * w;
   }
+  flask.userData.slant = slant;
   return curve(OUT, k);
 }
+const smooth = (x: number): number => { const t = Math.max(0, Math.min(1, x)); return t * t * (3 - 2 * t); };
 
 /**
- * The fist closed round the flask's neck (`out` how far it's out, its scale): its neck out over the thumb, aimed at the
- * lips as far as the drink has lifted it there, else across the fist as the hand closes naturally. Call while the
- * flask is out, after the arm is posed, in place of the hand's own pose.
+ * The fist closed round the flask's neck (`out` how far it's out, its scale), as the hand joint is turned (`drink`
+ * turns it: the neck across the palm, slanted on it by as much as the drink has it), the mouth over the thumb. Call
+ * while the flask is out, after the arm is posed, in place of the hand's own pose.
  */
 export function holdFlask(h: Hand, flask: THREE.Object3D, out: number): void {
-  const joint = h.vis.parent!;
+  const joint = h.vis.parent!, slant = flask.userData.slant as number;
   joint.updateWorldMatrix(true, false);
   joint.getWorldQuaternion(_q);
-  // (the fist's own way, a handle across the palm with the thumb towards it, turned halfway to the neck up: carried
-  // across the fist alone, it lay flat, its neck pointing aside)
-  _d.set(-h.s, 0, 0).applyQuaternion(_q).add(Y).normalize();
-  const lift = flask.userData.lift as number;
-  if (lift > 0) _d.lerp(flask.userData.aim as THREE.Vector3, lift).normalize();
+  // (the neck and the hand's length from the joint's turn, the slant taken back out of it: `hold` turns the fist by it)
+  _r.copy(_q).multiply(_sl.setFromAxisAngle(Z, -slant));
+  _d.set(-h.s, 0, 0).applyQuaternion(_r);
+  _a.set(0, 1, 0).applyQuaternion(_r);
   const r = NECK_R * out;
-  // (the hand's length along the forearm as `drink` placed the wrist for it, the line it planned with while it lifts
-  // the flask: with the neck near the forearm's line at the sip, the few millimetres the body's fitting moves the arm
-  // after it swung the fist round the neck 13 cm off the lips; along the hand's joint, which the pose may have bent
-  // at the wrist, the fist closed a hand's width off)
-  if (lift > 0) _a.copy(flask.userData.up as THREE.Vector3);
-  else _a.subVectors(joint.parent!.getWorldPosition(_a), joint.getWorldPosition(_b));
-  hold(h, _d, r, _a);
+  hold(h, _d, r, _a, slant);
   seatHeld(h, flask, r);
   flask.quaternion.setFromUnitVectors(Y, _d.applyQuaternion(_q.invert()));
   // (the draught's surface level, however the flask is tipped: the draught turned back from the flask's own turn)
   flask.updateWorldMatrix(true, false);
   (flask.userData.draught as THREE.Object3D).quaternion.copy(flask.getWorldQuaternion(_q).invert());
   // (the cork out as it reaches the lips: drunk through, it read as a stoppered bottle pressed to the mouth)
-  (flask.userData.cork as THREE.Object3D).visible = lift < 0.95;
-  // (a drink not posed this frame leaves the flask the fist's own way)
-  flask.userData.lift = 0;
+  (flask.userData.cork as THREE.Object3D).visible = (flask.userData.lift as number) < 0.95;
+  // (a drink not posed this frame leaves the fist the hand joint's own way, the neck square across it)
+  flask.userData.slant = 0; flask.userData.lift = 0;
 }
 
 /** how far the flask is up at the lips (0..1) at `k`: a model eases what it moves out of the way by it */
