@@ -76,7 +76,8 @@ import { initReadying, layOutReadyingAhead, READYING, settleReadying } from './u
 import { hdrAllowedAtBoot, heroDetailAtBoot, holdQuality, initQuality, sampleQuality } from './core/quality';
 /** the heroes' detail at or under which their hands are sculpted coarse (Very low's 0.2) */
 const COARSE_HANDS_UNDER = 0.2;
-import { runFrames } from './core/frameLoop';
+import { framesUncapped, runFrames } from './core/frameLoop';
+import { pacedStep } from './core/framePace';
 import { updateLowLife } from './core/lowLife';
 import { checkPrograms, commandsDone, markLoaded, pinPrograms, steadyShadowPrograms, watchPrograms } from './core/shaders';
 import { initBiome, rollBiome } from './game/biome';
@@ -1137,7 +1138,9 @@ function frame(timestamp: number): void {
   perfBeginFrame(timestamp);
   timer.update(timestamp);
   const rawDt = timer.getDelta();
-  const dt = Math.min(rawDt, 1 / 20);
+  // (stepped by the frames' mean, not each one's own interval: a window on a 60 Hz monitor beside a faster one had its
+  // frames timed on the other's ticks, 13.8 and 20.7 ms in turn, and the world juddered, #552; Auto reads the raw)
+  const dt = Math.min(pacedStep(rawDt, revealed && !framesUncapped()), 1 / 20);
   if (revealed) { updateTouch(dt); handleGlobalKeys(); syncView(); }
   updateMusic(dt, musicWanted());
   const t0 = perfClock.now();

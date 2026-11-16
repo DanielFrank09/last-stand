@@ -609,6 +609,25 @@ takes and the options every command takes. [`AGENTS.md`](AGENTS.md) has the lab'
   (main: 141 degrees in a frame, each way in each view). `--canary` sends that move twice running (the second, the size
   of the one before, is taken as the hand's): the view turns round in a frame, which must be found each way in each
   view.
+- `pace`: the hero walking on a screen whose browser times its frames on another screen's ticks (`page/pace.ts`;
+  `src/core/framePace.ts`, #552). Chrome on Windows gave a window on a 60 Hz monitor beside a 145 Hz one its frames
+  on the 145 Hz ticks, 13.8 and 20.7 ms in turn, while the screen showed each for 16.7 (traces T9NG-CZ79, GYKX-N2GP,
+  0HSJ-60QV): stepped by those, the hero went a half further in one shown frame than the next. Each scenario
+  (`--scenarios even,ticked,moved`) sets up afresh and walks him (`w`) 180 frames a screen, the lab's clock handing
+  each frame the time its browser would (the screen's refresh rounded up to the next tick, on the clock's grid):
+  `even` an even 60, `ticked` the 60 Hz screen on 145 Hz ticks, `moved` a 144 Hz screen and then the window moved to
+  the 60 Hz one (`lab.showOn`, 2560x1440 to 1920x1080). After 40 frames a screen, his pace in each shown frame (how
+  far he went over the time it was shown) is judged by its jerk: how far it stands off the mean of the frames either
+  side of it, a share of the steady pace, at most 6%. A judder flips frame to frame; his own stride
+  (`entities/movement.ts`) changes his pace over many frames, and judged against the median it read as a 7% judder at
+  an even 60. The game's step (`G.dt`) over the time shown is reported beside it (its stray from the median), he must
+  walk 2 m, and the game's time must keep the frames' clock within a 60th. `--canary` walks the ticked screen with the
+  frames stepped as they come (`window.__holdFramePace`, which a dev build's `framePace.ts` sets: the page's own
+  import of the module is another copy than the game's, and a hold set on it held nothing); a commit without it (main
+  before #552) says so and runs the scenarios alone, which are the canary there. Its judder must be found. On
+  2026-11-14, against main (e575a9b): main's `ticked` and `moved` jerk 50.0% (the step strays 50.0%) and fail; this
+  tree's 3.2% (the step 2.9% and 3.7%, the game's time 2.89 and 2.08 ms off the clock); `even` 2.5% on both (his
+  stride), the canary 50.0%, caught.
 - `nearaim`: the hero's aim as a foe stands under the crosshair near him (`page/nearAim.ts`; `src/core/input.ts`
   `aimAlong`, `AIM.near`). In each close view (`--views third,first`) a training dummy is stood under the
   crosshair's ray from abreast of the hero to 7 m ahead of him the way the camera looks, a set-up each, and the
