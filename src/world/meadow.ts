@@ -15,6 +15,7 @@ import * as THREE from 'three';
 import { canvasOf, ctx2d, readCtx2d } from '../core/textures';
 import { asGrass, type Updater } from './props';
 import { hiddenByHallDoor } from './hallPortal';
+import { wholeView } from '../core/wholeView';
 
 /** The rings: each cell's size (m), how far out it's drawn (m) and the segments along each blade. */
 const RINGS = [
@@ -694,6 +695,17 @@ export function holdMeadowFromAbove(on: boolean | null): void {
   aboveHeld = on;
 }
 
+/** Whether the one ring from above is drawn in the rings' place. Never in a whole view (`core/wholeView.ts`, the
+ *  developer mode's free camera): it follows the game's own camera's height and reach, and flown high over the village
+ *  the grass stood in a circle with the meadow past it bare, from play, "in free cam mode, there is a circle beyond
+ *  which grass disappears, it should not". */
+const drawnFromAbove = (): boolean => aboveHeld ?? (fromAbove && !wholeView());
+
+/** the meadow's half side (m), and how far the last ring reaches in a whole view (m): from anywhere on the meadow to
+ *  its far corner, so all of it is drawn wherever the rings' middle is */
+let meadowHalf = 0;
+const wholeReach = (): number => Math.hypot(meadowHalf * 2, meadowHalf * 2) + ROOT_STRAYS;
+
 /** whether a harness has the ring from above drawn as from far up whatever the camera's height, as it was */
 let aboveFarHeld = false;
 
@@ -890,9 +902,17 @@ export function focusOf(camera: THREE.Camera, out: THREE.Vector2): THREE.Vector2
   // (in the close views, the hero: by the sight's end on the ground, the rings went round him with the camera, and
   // the grass changed where they hand over, from play "grass visibly changes when I rotate the camera around the
   // character")
-  if (roundHim && !(aboveHeld ?? fromAbove)) return out.copy(roundHim);
+  const whole = wholeView();
+  if (roundHim && !whole && !drawnFromAbove()) return out.copy(roundHim);
   camera.getWorldDirection(_forward);
   const p = camera.position;
+  // (in a whole view the sight's end itself, however far, kept on the meadow: the fine rings where the camera looks
+  // from near the ground, and the last one, reaching all of it from there, `wholeReach`)
+  if (whole) {
+    const along = Math.max(p.y, 0) / Math.max(-_forward.y, FOCUS_STEEP);
+    const onMeadow = (v: number): number => Math.max(-meadowHalf, Math.min(meadowHalf, v));
+    return out.set(onMeadow(p.x + _forward.x * along), onMeadow(p.z + _forward.z * along));
+  }
   const along = Math.min(FOCUS_MOST, Math.max(p.y, 0) / Math.max(-_forward.y, FOCUS_STEEP));
   return out.set(p.x + _forward.x * along, p.z + _forward.z * along);
 }
@@ -903,6 +923,7 @@ export function buildMeadow(mask: MeadowMask, maskTexture: THREE.Texture, update
   group.name = 'meadow';
   // (where it grows, for the lab and the village's map)
   group.userData.mask = mask;
+  meadowHalf = mask.half;
   group.userData.maskTexture = maskTexture;
   const time = { value: 0 };
   updaters.push((_dt, t) => { time.value = t; });
@@ -951,6 +972,9 @@ export function buildMeadow(mask: MeadowMask, maskTexture: THREE.Texture, update
     // which holds the depth test back to after the shading, and as tufts in the strands' where it isn't; neither
     // hidden, as a hidden mesh compiles nothing, and a level's switch must compile none)
     const near = !above && ring.cell === RINGS[0].cell;
+    const last = k === RINGS.length - 1;
+    /** the last ring's own outer band, kept while a whole view has it reach all the meadow */
+    let ownBand: { fades: number; ends: number } | null = null;
     const meshOf = (geometry: THREE.InstancedBufferGeometry, combed: boolean, tufted: boolean | null): THREE.Mesh => {
     const mesh = new THREE.Mesh(geometry, bladeMaterial(u, combed, `${k}${combed ? '-combed' : ''}`));
     mesh.name = `meadow grass ${k + 1}${tufted ? ' tufts' : ''}`;
@@ -967,13 +991,27 @@ export function buildMeadow(mask: MeadowMask, maskTexture: THREE.Texture, update
       // (a mesh for the tufts and one for the rest, as a geometry swapped here is too late for this draw: three has
       // taken the mesh's geometry by now, and the tiles listed for the new one were drawn by the old one's count)
       const asTufts = tuftOf() > 1 && (!above || near);
-      if ((aboveHeld ?? fromAbove) !== above || (tufted !== null && tufted !== asTufts)) {
+      if (drawnFromAbove() !== above || (tufted !== null && tufted !== asTufts)) {
         geo.instanceCount = 0;
         return;
       }
       const focus = focusOf(camera, u.uFocus.value).add(focusMoved);
       eyeOf(camera, above, u.uEye.value);
-      const reach = near ? ABOVE_NEAR.radius : ring.radius;
+      // (the last ring out to all the meadow in a whole view, whole to its end: uniforms and a count alone, its own
+      // put back as the view is let go)
+      const whole = last && wholeView();
+      if (whole && !ownBand) ownBand = { fades: u.uBand.value.z, ends: u.uBand.value.w };
+      if (whole) {
+        u.uBand.value.z = wholeReach() - AT_ONCE;
+        u.uBand.value.w = wholeReach();
+        u.uS.value = Math.ceil((Math.ceil((wholeReach() * 2) / u.uCell.value) + 1) / TILES);
+      } else if (ownBand) {
+        u.uBand.value.z = ownBand.fades;
+        u.uBand.value.w = ownBand.ends;
+        u.uS.value = cellsATile(ring);
+        ownBand = null;
+      }
+      const reach = whole ? wholeReach() : near ? ABOVE_NEAR.radius : ring.radius;
       if (above) {
         const ringCell = near ? ABOVE_NEAR.cell : ring.cell;
         // (near the ground a card a cell, one tuft each: at the rings' spread the ground showed between them, from

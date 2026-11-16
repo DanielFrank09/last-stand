@@ -24,6 +24,7 @@ import { completeStep } from './training';
 import { HALL, TERRACE, inHall } from '../data/village';
 import { PORTICO_COLUMNS, inHallsBulk } from '../world/village';
 import { meadowFromAbove } from '../world/meadow';
+import { onWholeView, wholeView } from '../core/wholeView';
 import { CLASS_IDS } from '../data/classes/index';
 import { LAMP_SOFT } from '../core/lamps';
 import { on } from '../events';
@@ -426,14 +427,13 @@ function hallInside(dt: number): void {
   fadeWhole('hallColumn', columnFade < CUT_AWAY_NONE ? 0 : columnFade);
   // (from inside, the grass is seen through the doorway alone: walls and roof hid its 750k triangles, drawn all the
   // same; from above the roof is away, and all of it shows)
-  village.meadow.visible = !(inside && view !== 'top' && cameraInHall() && !doorInView());
+  meadowSeen = !(inside && view !== 'top' && cameraInHall() && !doorInView());
+  // (and all of both in a whole view, which isn't drawn from the game's camera: `core/wholeView.ts`)
+  village.meadow.visible = meadowSeen || wholeView();
   // (nor what stands loose in its room from outside it, in the close views with its doorway out of sight: its
   // walls hide the room, whose torches, plinths, banners and columns were drawn all the same)
-  const roomSeen = !lobby || view === 'top' || inside || cameraInHall() || (doorwayOnScreen() && roomThroughDoor());
-  if (roomSeen !== roomShown) {
-    for (const part of village.hallRoom) part.visible = roomSeen;
-    roomShown = roomSeen;
-  }
+  roomSeen = !lobby || view === 'top' || inside || cameraInHall() || (doorwayOnScreen() && roomThroughDoor());
+  showRoom(roomSeen || wholeView());
   // (from above, the camera sees past the walls: while he can see a plinth, from play, "pedestals are empty from this
   // position, they should display heroes if character can see them from their cone of view")
   // (from however far: within 12 m of the door alone, the plinths stood empty through it from the fountain and the
@@ -445,8 +445,25 @@ function hallInside(dt: number): void {
   standHeroes(lobby && seen && isWarm('heroes'), dt, !inside && !byDoor);
 }
 
-/** whether the hall's room's loose parts are shown (`hallInside`) */
+/** whether the hall's room's loose parts are shown (`hallInside`), and whether the game's own view sees them and the
+ *  meadow */
 let roomShown = true;
+let roomSeen = true;
+let meadowSeen = true;
+
+/** The hall's room's loose parts shown or left out of the frame. */
+function showRoom(shown: boolean): void {
+  if (shown === roomShown) return;
+  for (const part of G.arena.village.hallRoom) part.visible = shown;
+  roomShown = shown;
+}
+
+// (at once, as a whole view is taken or let go: a frozen game has no frame of its own to show them in)
+onWholeView((whole) => {
+  if (!G.arena?.village) return;
+  G.arena.village.meadow.visible = meadowSeen || whole;
+  showRoom(roomSeen || whole);
+});
 
 /** How much of the hall's floor just past its door he sees, by the rays round him (0 to 1). */
 function seesThroughDoor(): number {
