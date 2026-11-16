@@ -21,8 +21,8 @@
 * { box-sizing: border-box; }
 // (lining digits: the body face's own are old-style, rising and dropping along a row of numbers as lower-case letters
 // do; the world's labels, painted on a canvas, take its lining twin: ui/overlay/paint.ts)
-html, body { margin: 0; height: 100%; overflow: hidden; background: #030307; color: var(--ink); font-family: var(--font-body); user-select: none;
-  font-variant-numeric: lining-nums; }
+html, body { margin: 0; height: 100%; height: 100dvh; overflow: hidden; background: #030307; color: var(--ink); font-family: var(--font-body); user-select: none;
+  font-variant-numeric: lining-nums tabular-nums; }
 #game { position: fixed; inset: 0; }
 #game canvas { display: block; }
 /* HDR output (core/hdr.ts): the frame shown over the game's canvas, which still takes the pointer under it */

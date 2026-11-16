@@ -102,7 +102,7 @@ body.touch .stow-hint kbd { display: none; }
 /* upright tablets: the panel spans the width, equipment above the stash */
 @media (orientation: portrait) and (max-width: 1000px) and (min-height: 521px) {
   #menu { grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto; align-items: start; }
-  #menu .menu-left, #menu .menu-right, #menu .menu-center { max-height: calc(100vh / var(--ui, 1) - 40px); }
+  #menu .menu-left, #menu .menu-right, #menu .menu-center { max-height: calc(100vh / var(--ui, 1) - 40px); max-height: calc(100dvh / var(--ui, 1) - 40px); }
   .menu-left, .menu-right { width: auto; max-width: none; }
   .menu-right .tab-page[data-page="gear"] { display: flex; }
   .menu-right #equip { margin-top: 0; align-self: auto; }
@@ -127,4 +127,10 @@ body.touch .stow-hint kbd { display: none; }
   /* (and the minimap a little smaller, its spoils' line clear of the arc's top button) */
   #minimap-wrap { zoom: .85; }
   #hud { --mm-room: 153px; }
+}
+
+/* ---------- narrow viewports (<= 768px): collapse sidebars into a bottom-sheet drawer ---------- */
+@media (max-width: 768px) and (min-height: 521px) {
+  #menu { grid-template-columns: 1fr; grid-template-rows: 1fr auto; padding: 8px; }
+  #menu .menu-left, #menu .menu-right, #menu .menu-center { grid-column: 1; width: 100%; max-width: 100%; max-height: calc(72dvh / var(--ui, 1)); border-radius: 16px 16px 0 0; }
 }

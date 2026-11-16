@@ -46,11 +46,12 @@ class Track {
   get playing(): boolean { return this.source !== null; }
 
   /** Fetched and decoded (fetched whole: it plays from the service worker's cache everywhere). */
-  async load(ctx: AudioContext): Promise<void> {
+  async load(ctx: AudioContext, priority: 'high' | 'low' = 'high'): Promise<void> {
     if (this.buffer || this.loading) return;
     this.loading = true;
     try {
-      const data = await (await fetch(URLS[this.id])).arrayBuffer();
+      const init = { priority } as RequestInit;
+      const data = await (await fetch(URLS[this.id], init)).arrayBuffer();
       this.buffer = await ctx.decodeAudioData(data);
       this.gain = ctx.createGain();
       this.gain.gain.value = 0;
@@ -129,6 +130,8 @@ const tracks = Object.fromEntries(
 ) as Record<TrackId, Track>;
 /** whether the context was asked to start before a gesture */
 let asked = false;
+/** background preload timer so non-active battle tracks don't compete with initial lobby/3D load */
+let readyTimer: number | null = null;
 
 /** The music made to follow `wanted`, called every frame. */
 export function updateMusic(dt: number, wanted: MusicWanted): void {
@@ -137,8 +140,17 @@ export function updateMusic(dt: number, wanted: MusicWanted): void {
   // (loaded and asked to start as it's wanted: a browser lets sound start before the page's first click or key only
   // where it allows autoplay, as Chrome does on a site visited often or an installed app; elsewhere it starts with
   // that first gesture, the track already decoded)
-  for (const id of wanted.ready) void tracks[id].load(ctx);
-  if (wanted.track) void tracks[wanted.track].load(ctx);
+  if (wanted.track) void tracks[wanted.track].load(ctx, 'high');
+  if (wanted.ready.length > 0 && readyTimer === null) {
+    const idle = (window as unknown as { requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback;
+    const loadReady = (): void => {
+      readyTimer = null;
+      for (const id of wanted.ready) {
+        if (id !== wanted.track) void tracks[id].load(ctx, 'low');
+      }
+    };
+    readyTimer = idle ? idle(loadReady, { timeout: 2500 }) : window.setTimeout(loadReady, 800);
+  }
   if (ctx.state !== 'running') {
     if (wanted.track && !asked) void ctx.resume().catch(() => undefined);
     asked = true;

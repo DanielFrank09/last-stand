@@ -14,8 +14,8 @@
 /* the village's: [center column] [right panel: the inventory], and only while it's open (I, or the chest:
    ui/menus.ts `openPanels`); the crest over the top middle */
 #{$village} #menu { grid-template-columns: minmax(0, 1fr) auto; }
-.menu-left { align-self: start; max-height: 100%; }
-.menu-right { align-self: stretch; }
+.menu-left { align-self: start; max-height: 100%; contain: layout paint; }
+.menu-right { align-self: stretch; contain: layout paint; }
 .menu-center { display: flex; flex-direction: column; justify-content: flex-end; align-items: center; min-width: 0; }
 #menu .panel { pointer-events: auto; }
 /* (laid out over the loading screen unseen: ui/menus.ts layOutMenuAhead) */
@@ -83,7 +83,7 @@
   color: var(--accent); border: 1px solid rgba($frame, .5); border-radius: 50%; background: radial-gradient(circle at 50% 35%, #3a3024, #0c0a0a 75%);
   text-shadow: 0 0 8px rgba($accent-glow, .45); }
 .rec-icon svg { width: 20px; height: 20px; fill: currentColor; filter: drop-shadow(0 0 4px rgba($accent-glow, .45)); }
-.rec-val { font-family: var(--font-display); font-size: 24px; font-weight: 700; line-height: 1; color: #f3e1b0; }
+.rec-val { font-family: var(--font-display); font-size: 24px; font-weight: 700; font-variant-numeric: lining-nums tabular-nums; line-height: 1; color: #f3e1b0; }
 .rec-label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-dim); }
 .biome-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .br-label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--ink-dim); }
@@ -121,7 +121,7 @@ body.touch .menu-links .link { min-height: calc(28px / var(--ui, 1)); }
 /* both pages share one cell, so the panel keeps the equipment page's height on either tab: the
    attributes add no height of their own (contain) and scroll when they run longer */
 .tab-page { grid-area: 2 / 1; display: flex; flex-direction: column; min-height: 0; }
-.tab-page.off { visibility: hidden; }
+.tab-page.off { visibility: hidden; content-visibility: hidden; }
 .tab-page[data-page="attrs"] { contain: size; overflow-y: auto; scrollbar-width: thin; }
 .tab-page .panel-title { margin-top: 12px; }
 
@@ -189,6 +189,7 @@ body.touch .menu-links .link { min-height: calc(28px / var(--ui, 1)); }
    hidden, enlarged state) stays inside, which neither clips it nor makes it count as overflow */
 #stash { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; align-content: start;
   overflow: hidden auto; scrollbar-width: thin; padding: 9px; margin: -9px -9px 4px;
+  content-visibility: auto; contain-intrinsic-size: 0 320px;
   anchor-name: --stash; scroll-timeline: --stash block; }
 /* a row cut by the scroll fades out above the frame instead of running into it: the panel's colour
    laid over the stash's last 18px, anchored to it in every layout (and a pixel past it, which the
@@ -329,9 +330,9 @@ body.touch #duel-ask .btn { min-height: calc(40px / var(--ui, 1)); }
 /* the pause menu's ways to what the village's objects open: in the lobby alone */
 .pb-links { margin: 4px 0 2px; }
 
-/* ---------- lobby stowed (Space; in the village, no panel open): the panels fade out, the arena stays playable,
-   the village walkable; the village's card stays ---------- */
-#menu .panel { transition: opacity .35s ease, transform .35s ease, translate .3s ease, box-shadow .3s; }
+/* ---------- lobby stowed (Space; in the village, no panel open): instant toggle for keyboard-initiated practice,
+   the arena stays playable, the village walkable; the village's card stays ---------- */
+#menu .panel { transition: none; }
 #{$panels} #menu.stowed .panel { opacity: 0; pointer-events: none; }
 #{$village} #menu.stowed .panel:not(#vcard) { opacity: 0; pointer-events: none; }
 /* (and everything in them: a `.btn` takes the pointer by its own rule, so Enter the Arena, unseen, started a fight

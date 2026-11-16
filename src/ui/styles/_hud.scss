@@ -18,7 +18,7 @@
 
 /* bottom HUD: [health] [abilities] [energy] in a single compact row */
 #bottombar { position: absolute; left: 50%; bottom: hud(12px); transform: translateX(-50%); display: flex; align-items: center; gap: 0;
-  filter: drop-shadow(0 6px 14px rgba(0,0,0,.85)); }
+  contain: layout paint; filter: drop-shadow(0 6px 14px rgba(0,0,0,.85)); }
 .bar { position: relative; width: 300px; height: 46px; background: linear-gradient(#0a0808, #1a1414); overflow: hidden;
   @include frame(var(--frame), 0 0 0 1px #000, inset 0 8px 14px rgba(0,0,0,.6)); }
 .bar.life { border-radius: 23px 0 0 23px; border-right: none; }
@@ -29,8 +29,8 @@
 .bar.life .fill { z-index: 1; }
 .bar.energy .fill { background: linear-gradient(180deg, #7affd8 0%, #1fae8a 35%, #0a4a3c 100%); box-shadow: inset 0 1px 0 rgba(255,255,255,.35); }
 .bar .txt { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2;
-  font-family: var(--font-display); font-size: 17px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px #000, 0 0 4px #000; }
-.bar .bar-label { position: absolute; top: 3px; z-index: 2; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,255,255,.55); text-shadow: 0 1px 2px #000; }
+  font-family: var(--font-display); font-size: 17px; font-weight: 700; font-variant-numeric: lining-nums tabular-nums; color: #fff; text-shadow: 0 1px 2px #000, 0 0 4px #000; }
+.bar .bar-label { position: absolute; top: 3px; z-index: 2; font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: rgba(255,244,224,.82); text-shadow: 0 1px 2px #000, 0 0 4px #000; }
 .bar.life .bar-label { left: 22px; } .bar.energy .bar-label { right: 22px; }
 .bar.low .fill { animation: lowpulse .6s infinite alternate; }
 @keyframes lowpulse { to { filter: brightness(1.8); } }
@@ -38,13 +38,13 @@
   @include gem;
    box-shadow: 0 0 0 2px #000, inset 0 0 12px #000, 0 0 18px rgba(0,0,0,.9); }
 .gem-label { font-size: 9px; letter-spacing: 2px; text-transform: uppercase; color: var(--ink-dim); margin-top: 2px; }
-.gem-num { font-family: var(--font-display); font-size: 24px; font-weight: 900; color: var(--accent); line-height: 1; text-shadow: 0 0 8px rgba($accent-glow, .5); }
+.gem-num { font-family: var(--font-display); font-size: 24px; font-weight: 900; font-variant-numeric: lining-nums tabular-nums; color: var(--accent); line-height: 1; text-shadow: 0 0 8px rgba($accent-glow, .5); }
 #wavebadge { position: absolute; top: hud(10px); left: 50%; transform: translateX(-50%); width: 70px; height: 70px; }
 #wavebadge .gem-num { font-size: 28px; }
 #hotbar { display: flex; gap: 6px; padding: 7px 12px; position: relative; z-index: 3; background: $tray;
   @include frame(rgba($frame, .6), 0 0 0 1px #000, 0 6px 14px rgba(0,0,0,.8)); border-radius: 4px; }
 .slot { position: relative; width: 62px; height: 62px; border: 1px solid #000; box-shadow: inset 0 0 0 1px rgba($frame, .7), inset 0 0 12px rgba(0,0,0,.9);
-  display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 3px; pointer-events: auto; }
+  display: flex; align-items: center; justify-content: center; overflow: hidden; border-radius: 3px; pointer-events: auto; transition: none; }
 .slot .icon { font-size: 33px; line-height: 1; filter: drop-shadow(0 0 6px currentColor); }
 /* a painted icon (ui/skillArt.ts) fills the slot, and the slot's frame and shade (its box-shadow, whatever state sets it)
    are drawn again over it, under the cooldown and the key */
@@ -62,12 +62,12 @@
 .slot.busy .icon { filter: grayscale(.85) brightness(.4); }
 .slot.sep { margin-left: 10px; }
 
-#buffs { position: absolute; left: calc(50% - 470px); bottom: 76px; display: flex; gap: 4px; }
+#buffs { position: absolute; left: calc(50% - 470px); bottom: 76px; display: flex; gap: 4px; contain: layout paint; }
 .buff { width: 30px; height: 30px; border: 1px solid var(--frame); display: flex; align-items: center; justify-content: center; font-size: 18px; background: #111;
   position: relative; box-shadow: 0 0 8px rgba(0,0,0,.8); }
 .buff .bt { position: absolute; bottom: -14px; font-size: 11px; color: #fff; text-shadow: 0 0 3px #000; }
 
-#target { position: absolute; top: 88px; left: 50%; transform: translateX(-50%); text-align: center; min-width: 260px; }
+#target { position: absolute; top: 88px; left: 50%; transform: translateX(-50%); text-align: center; min-width: 260px; contain: layout paint; }
 .t-name { font-family: var(--font-display); font-size: 19px; font-weight: 700; color: #f5d27a; text-shadow: 0 2px 4px #000, 0 0 10px #000; }
 .t-sub { font-size: 12px; color: var(--ink-dim); margin-bottom: 3px; text-shadow: 0 1px 2px #000; }
 .t-bar { position: relative; height: 12px; width: 300px; margin: 0 auto; background: #120808; border: 1px solid #000; box-shadow: 0 0 0 1px var(--frame-dark), inset 0 0 6px #000; }
@@ -78,7 +78,7 @@
 
 // (`--mm-room`: the minimap's width, which the touch HUD's full screen button stands beside, `_touch.scss`)
 #hud { --mm-room: 212px; }
-#minimap-wrap { position: absolute; top: hud(8px); right: hud(12px); width: var(--mm-room); display: flex; flex-direction: column; align-items: center; }
+#minimap-wrap { position: absolute; top: hud(8px); right: hud(12px); width: var(--mm-room); display: flex; flex-direction: column; align-items: center; contain: layout paint; }
 .mm-title { font-family: var(--font-display); font-size: 16px; color: #f0e2c0; text-shadow: 0 2px 4px #000; margin-bottom: 2px; }
 // (a finger held on it pings there: ui/ping.ts)
 body.touch #minimap { pointer-events: auto; touch-action: none; -webkit-touch-callout: none; user-select: none; }

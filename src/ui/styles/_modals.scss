@@ -2,18 +2,19 @@
 @use 'theme' as *;
 @use 'mixins' as *;
 
-.modal { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,.55); backdrop-filter: blur(ui(2px)); }
-.modal-box { width: 520px; max-height: 86vh; overflow: auto; padding: 22px 26px; text-align: center; background: linear-gradient(rgba(20,17,16,.98), rgba(8,7,8,.98));
-  @include frame(var(--frame), 0 20px 60px rgba(0,0,0,.9)); display: flex; flex-direction: column; gap: 12px; animation: pop .3s ease; }
-/* a fade alone: a box centred on a fraction of a pixel is drawn there while it is scaled, and jumped up to a pixel as
-   the scaling ended */
-@keyframes pop { from { opacity: 0; } }
+.modal { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; background: rgba(5, 3, 3, .78); backdrop-filter: blur(12px); }
+.modal-box { width: 520px; max-height: 86dvh; overflow: auto; padding: 24px 28px; text-align: center; border-radius: 10px;
+  background: linear-gradient(rgba(20,17,16,.98), rgba(8,7,8,.98));
+  @include frame(rgba($frame, .65), 0 0 0 6px rgba(10, 8, 10, .78), 0 0 0 7px rgba($accent, .18), inset 0 1px 1px rgba(255, 235, 190, .14), 0 24px 64px rgba(0,0,0,.92));
+  display: flex; flex-direction: column; gap: 12px; animation: pop .35s cubic-bezier(0.32, 0.72, 0, 1); }
+@keyframes pop { from { opacity: 0; transform: scale(0.96) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .modal-box { animation: none; } }
 .sm-title { font-family: var(--font-display); font-size: 32px; font-weight: 900; color: var(--accent); }
 .sm-title.dead { color: #ff5040; text-shadow: 0 0 20px rgba(255,40,20,.4); }
 .sm-sub { color: var(--ink-dim); }
 .sm-stats { display: flex; justify-content: center; gap: 26px; }
 .sm-stats div { display: flex; flex-direction: column; font-size: 12px; color: var(--ink-dim); text-transform: uppercase; letter-spacing: 1px; }
-.sm-stats b { font-family: var(--font-display); font-size: 24px; color: var(--ink); }
+.sm-stats b { font-family: var(--font-display); font-size: 24px; color: var(--ink); font-variant-numeric: lining-nums tabular-nums; }
 .sm-items { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
 .sm-items .chip { font-size: 13px; padding: 2px 7px; background: rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.1); }
 .sm-items .chip.lost { text-decoration: line-through; opacity: .55; }
@@ -80,11 +81,11 @@
 /* zoomed, a box's own vh and vw are zoomed with it: its limits are the window's over --ui (a phone's 86vh, zoomed by
    its 0.6, held the Play together dialog to half its screen, scrolled; zoomed over 1, past the window, its top
    cut off where no scroll reaches) */
-.modal-box { zoom: var(--ui, 1); max-width: calc(94vw / var(--ui, 1)); max-height: calc(94vh / var(--ui, 1)); }
+.modal-box { zoom: var(--ui, 1); max-width: calc(94vw / var(--ui, 1)); max-height: calc(94vh / var(--ui, 1)); max-height: calc(94dvh / var(--ui, 1)); }
 /* a tapped item's sheet: its cards scroll inside it and its buttons stay in view under them (sized in the window's
    units over --ui, as the box is zoomed: its 86vh was 86% of the window times the UI's scale, and the box scrolled
    the buttons away with the cards) */
-#item-sheet .modal-box { width: auto; max-width: calc(96vw / var(--ui, 1)); max-height: calc(94vh / var(--ui, 1));
+#item-sheet .modal-box { width: auto; max-width: calc(96vw / var(--ui, 1)); max-height: calc(94vh / var(--ui, 1)); max-height: calc(94dvh / var(--ui, 1));
   overflow: hidden; }
 #item-sheet .is-card { display: flex; justify-content: center; text-align: left; flex: 0 1 auto; min-height: 0;
   overflow-y: auto; overscroll-behavior: contain; }
