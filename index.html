@@ -205,6 +205,13 @@
     <div id="look-hint" class="hidden">Click to look around</div>
 
     <div id="banner" class="hidden"><div class="b-title"></div><div class="b-sub"></div></div>
+    <!-- a duel (ui/duelHud.ts): the score either side of the round's badge, and the match's result -->
+    <div id="duel-score" class="hidden" role="status">
+      <span class="ds-a"></span><span class="ds-mid"><b class="ds-points"></b><i class="ds-note"></i></span><span class="ds-b"></span>
+    </div>
+    <div id="duel-result" class="hidden" role="status">
+      <div class="dr-title"></div><div class="dr-who"></div><div class="dr-score"></div><div class="dr-note"></div>
+    </div>
 
     <div id="buffs"></div>
     <div id="wavebadge" class="gem"><span class="gem-label">Wave</span><span class="gem-num">1</span></div>
@@ -532,6 +539,27 @@
         <div class="records"></div>
         <div class="vc-row"><button class="btn" id="btn-saves">Save slot 1</button><button class="btn danger" id="btn-reset">Reset profile</button></div>
       </div>
+      <div class="vc-page" data-page="pvp">
+        <div class="pvp-choices">
+        <div class="biome-row"><span class="br-label">Battleground</span><div class="seg" id="pvp-ground"></div></div>
+        <div class="biome-row"><span class="br-label">Fight</span>
+          <div class="seg" id="pvp-size"><button data-v="1">1 v 1</button><button data-v="2">2 v 2</button></div>
+        </div>
+        <div class="biome-row"><span class="br-label">First to</span><div class="seg" id="pvp-wins"></div></div>
+        <div class="biome-row"><span class="br-label">Gear</span>
+          <div class="seg" id="pvp-gear"><button data-v="own">Own gear</button><button data-v="none">No gear</button></div>
+        </div>
+        </div>
+        <div id="pvp-sides">
+          <div class="pvp-side" data-part="0"><span class="br-label">Side one</span><div class="pvp-list"></div></div>
+          <div class="pvp-versus" aria-hidden="true">vs</div>
+          <div class="pvp-side" data-part="1"><span class="br-label">Side two</span><div class="pvp-list"></div></div>
+          <div class="pvp-side pvp-watch" data-part="watch"><span class="br-label">Watching</span><div class="pvp-list"></div></div>
+        </div>
+        <p id="pvp-note" role="status"></p>
+        <button class="btn primary big" id="pvp-go">Begin the duel</button>
+        <button class="btn primary" id="pvp-party">To the campfire</button>
+      </div>
       <button class="link vc-close">Leave</button>
     </div>
   </div>
@@ -633,6 +661,13 @@
   <div id="full-prompt" class="hidden" role="status">
     <span>Full screen</span>
     <button class="btn fp-back">Back to window</button>
+  </div>
+
+  <!-- a partner asks for the local player's place in the duel set up at the weapons rack (ui/pvpMenu.ts) -->
+  <div id="duel-ask" class="hidden" role="alertdialog" aria-labelledby="duel-ask-text">
+    <span id="duel-ask-text"></span>
+    <button class="btn primary" id="duel-ask-yes">Give it up and watch</button>
+    <button class="btn" id="duel-ask-no">Keep it</button>
   </div>
 
   <!-- a beta is on (the village lobby): said as the game opens, with the way back (ui/beta.ts) -->

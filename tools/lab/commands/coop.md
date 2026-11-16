@@ -149,6 +149,25 @@ leave the pause menu shut; the guest's chat must still
 show 7.5 s after its last line, be faded 11 s after it, and be back with the host's next line. `--pictures` pictures
 both screens as the long line has come and as the host's answer has.
 
+`duel` (`node/coopDuel.mjs`, `page/coopDuel.ts`; #406), alone and between two games: first the places (`node/coopDuelPlaces.mjs`, #627's review), each step from parts the host sets: the guest clicks a free side and must stand there on both games, taps a free side likewise (its page in touch mode), clicks the host's place and the host must be asked (its prompt naming the side, the guest's line saying it asked), gives it up by a click and watches on both, and the host taps the guest's place, the guest is asked and keeps it by a tap, both where they were and the host told it was kept; then the rack's card and the prompt are fitted on the guest's page on 1024x700, 1920x1080, 844x390@3, 751x298@3.75, 1180x820@2 and 820x1180@2, an ask of its place by a partner of a 16-letter name put in its state: the card within the window with every place and the prompt within it, and with the card shut the prompt within the window (laid over the card from the top, the prompt covered it on both phones). `--canary` loses every pick and answer the guest sends on the host's link, and pushes the fit's prompt a window down: every step and every screen must find it. Then the host sets a duel up in
+the weapons rack's menu by its own buttons (the Thornwood, first to 3, No gear) and the guest's menu must show the
+same, its button Ready and the host's Begin dead until it's pressed; begun, each game must have its one rival among its
+foes and no other foe, and no hero may cast through the count; then four rounds, in each the hero who is to lose it
+down to a little life on its own game and the other striking at it with its first skill where its own screen shows
+it: the struck hero down on both screens, the score the same on both and on the HUD, the guest's the match 3 : 1,
+"Victory" on its screen and "Defeat" on the host's, and both back in the village, each hero's most life as it was
+before the duel (less in it, with no gear). `--canary`: the struck hero's life put back every frame on its own game,
+so no round is won, which must be found. `--pictures`: both screens at the menu, the count, a fight, the result and
+back in the village (`out/coop/duel-*.png`).
+With `--party 3` or `4` it plays a party's duel instead (`node/coopDuelParty.mjs`), first to 1: each player takes his
+own place in the menu by a click (three: host against guest, the third watching; four: host and guest against the
+other two), the guests who fight ready and the host begins. Judged on every game: the same places, each fighter's
+rivals among its foes (1, or 2 in a 2 v 2; none for the watcher, whose hero must be out of the arena with the
+watching bar up) and no other foe; in a 2 v 2 the round must go on with one of the struck side down and end with
+both; the match's score and winner the same on every game, "Victory", "Defeat" or "The duel is over" each player's
+own, no hero of the side that struck down, and every game back in the village with no hero left out
+(`out/coop/duel3-*.png`, `duel4-*.png`: the host's and the guest's screens).
+
 `ghosts` (`diesLost`): the host kills three dazed foes by the guest, and the lab's link drops every death report on
 its way to the guest, as a game in #579 lost them (its copies stood, still, with their bars, through the choice after
 the wave and on into the next). Each copy must go from the guest's screen within 1.6 s of the host's foe

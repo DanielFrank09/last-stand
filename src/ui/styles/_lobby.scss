@@ -283,6 +283,49 @@ body.touch .menu-links .link { min-height: calc(28px / var(--ui, 1)); }
 .vc-row { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
 .vc-close { align-self: center; }
 
+/* the duel's menu, the weapons rack's page (ui/pvpMenu.ts): its sides face to face, who watches under them */
+.pvp-choices { display: flex; flex-direction: column; gap: 12px; }
+#pvp-sides { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px 10px; align-items: start; }
+#pvp-sides.hidden, #pvp-go.hidden, #pvp-party.hidden { display: none; }
+.pvp-side { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 8px; border: 1px solid rgba($frame, .35); border-radius: 3px; background: rgba(255,255,255,.03); }
+.pvp-side[data-part="0"] { border-color: rgba(#d0603c, .6); }
+.pvp-side[data-part="1"] { border-color: rgba($ally, .6); }
+.pvp-watch { grid-column: 1 / -1; flex-direction: row; align-items: center; justify-content: center; flex-wrap: wrap; padding: 6px 8px; }
+.pvp-versus { align-self: center; font: 700 15px var(--font-display); color: var(--ink-dim); }
+.pvp-list { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.pvp-watch .pvp-list { flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; }
+/* a side's places: a click takes a free one or asks its holder for a held one (net/session.ts `pickPlace`) */
+.pvp-place { max-width: 100%; padding: 5px 10px; font: 14px var(--font-body); color: var(--ink); cursor: $cursor-hand; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: $well; border: 1px solid rgba($frame, .55); border-radius: 3px; }
+.pvp-place:hover:not(:disabled) { color: #ffe7b0; border-color: var(--highlight); }
+.pvp-place:disabled { cursor: $cursor; }
+.pvp-open { font-style: italic; color: var(--ink-dim); border-style: dashed; }
+.pvp-place.mine, .pvp-watcher.mine { color: #ffe7b0; border-color: rgba(#f0c88a, .8); }
+.pvp-place.asked { border-color: var(--highlight); box-shadow: inset 0 0 0 1px rgba(#f0c88a, .5); }
+.pvp-watcher { padding: 2px 6px; font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pvp-none { font-size: 13px; font-style: italic; color: var(--ink-dim); }
+.pvp-player.ready::after { content: ' \2713'; color: #8fd08a; }
+#pvp-note { margin: 0; font-size: 14px; color: #f0c88a; }
+#pvp-party { align-self: center; }
+/* (a finger's room on each choice) */
+body.touch .pvp-place, body.touch [data-page="pvp"] .seg button { min-height: calc(40px / var(--ui, 1)); }
+
+/* a partner's ask for the local player's place in the duel (ui/pvpMenu.ts): at the top's middle, as the beta's
+   notice stands (_beta.scss), while the rack's card is shut; within the window on a phone, its buttons wrapping under */
+#duel-ask { position: fixed; top: 64px; left: 50%; translate: -50% 0; z-index: 102; box-sizing: border-box;
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px 10px;
+  width: max-content; max-width: calc((100vw - 16px) / var(--ui, 1)); padding: 8px 10px 8px 14px; font-size: 14px; color: var(--ink);
+  background: linear-gradient(rgba(20,17,16,.97), rgba(8,7,8,.97)); border: 1px solid var(--accent);
+  box-shadow: 0 6px 18px rgba(0,0,0,.7); zoom: var(--ui, 1); }
+#duel-ask.hidden { display: none; }
+#duel-ask .btn { padding: 5px 12px; font-size: 13px; }
+body.touch #duel-ask .btn { min-height: calc(40px / var(--ui, 1)); }
+/* (in the rack's card, open: in place of its line and button, zoomed with the card, framed by it: with a frame and
+   padding of its own it stood 12 px taller than they do, and the card ran past a 751x298 phone's top) */
+#duel-ask.inline { position: static; translate: none; zoom: 1; width: auto; max-width: 100%; padding: 0; gap: 4px 8px;
+  color: #f0c88a; background: none; border: 0; box-shadow: none; }
+.vc-page[data-page="pvp"].asking :is(#pvp-note, #pvp-go) { display: none; }
+
 /* the pause menu's ways to what the village's objects open: in the lobby alone */
 .pb-links { margin: 4px 0 2px; }
 
