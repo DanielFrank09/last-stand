@@ -70,7 +70,7 @@ const glowKept = typeof document === 'undefined' ? null : readCookie(GLOW_COOKIE
 /** the player's own choice, null while none was made */
 let gearGlowChosen: boolean | null = glowKept === 'on' ? true : glowKept === 'off' ? false : null;
 /** what the quality level in effect has it at */
-let gearGlowByLevel = true;
+let gearGlowByLevel = false;
 
 /** Whether worn gear glows in its rarity's colour: the player's choice, else the quality level's. */
 export const gearGlow = (): boolean => gearGlowChosen ?? gearGlowByLevel;

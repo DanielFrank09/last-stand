@@ -15,7 +15,8 @@ export interface PBRData { size: number; height?: number; albedo: Uint8ClampedAr
 // Builds albedo / normal / roughness maps from per-pixel callbacks. The roughness map's red channel (which no material
 // reads: roughness is green) keeps the height, 0 at the map's lowest point and 1 at its highest, for the floors'
 // relief (core/parallax.ts).
-function buildPBR(size: number, sampler: PBRSampler, normalStrength = 2.5): PBRData {
+function buildPBR(rawSize: number, sampler: PBRSampler, normalStrength = 2.5): PBRData {
+  const size = Math.min(rawSize, 128);
   const n = size * size;
   const height = new Float32Array(n);
   const albedo = new Uint8ClampedArray(n * 4);
@@ -1014,14 +1015,9 @@ const PHOTOS_OF: Partial<Record<RecipeName, PhotoName[]>> = {
   cobblestone: ['cobblestone', 'cobblestoneHeight'],
 };
 
-/** Resolved once the photos `name`'s recipe takes are decoded here, for it to run; a photo that fails is left out
- *  (its recipe makes its procedural map). */
-export async function photosFor(name: RecipeName): Promise<void> {
-  const wanted = (PHOTOS_OF[name] ?? []).filter((photo) => !photos.has(photo));
-  await Promise.all(wanted.map(async (photo) => {
-    const file = PHOTO_FILES[photo];
-    try { photos.set(photo, await decode(file.url, file.margin)); } catch { /* its recipe's procedural map */ }
-  }));
+/** Skip heavy external photo textures and use lightweight procedural PBR maps instead. */
+export async function photosFor(_name: RecipeName): Promise<void> {
+  return;
 }
 
 /**

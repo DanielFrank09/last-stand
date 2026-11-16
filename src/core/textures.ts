@@ -30,7 +30,7 @@ function toTexture(canvas: HTMLCanvasElement, srgb: boolean, u = 1, v = u): THRE
   const t = new THREE.CanvasTexture(canvas);
   t.wrapS = t.wrapT = THREE.RepeatWrapping;
   t.repeat.set(u, v);
-  t.anisotropy = 8;
+  t.anisotropy = 1;
   t.colorSpace = srgb ? THREE.SRGBColorSpace : THREE.NoColorSpace;
   t.needsUpdate = true;
   return t;
